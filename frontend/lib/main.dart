@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'repositories/catalog_repository.dart';
+import 'cubits/catalog_cubit.dart';
+import 'screens/catalog_screen.dart';
 
 void main() {
   runApp(const PharmaPulseApp());
@@ -9,15 +14,25 @@ class PharmaPulseApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PharmaPulse',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        useMaterial3: true,
-      ),
-      home: const Scaffold(
-        body: Center(
-          child: Text('PharmaPulse UI (В розробці)'),
+    return RepositoryProvider(
+      create: (context) => CatalogRepository(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<CatalogCubit>(
+            // Одразу при створенні викликаємо loadCatalog()
+            create: (context) => CatalogCubit(
+              repository: context.read<CatalogRepository>(),
+            )..loadCatalog(),
+          ),
+        ],
+        child: MaterialApp(
+          title: 'PharmaPulse',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+            useMaterial3: true,
+          ),
+          home: CatalogScreen(),
         ),
       ),
     );
