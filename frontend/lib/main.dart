@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'repositories/catalog_repository.dart';
 import 'cubits/catalog_cubit.dart';
+import 'cubits/cart_cubit.dart';
 import 'screens/catalog_screen.dart';
 
 void main() {
@@ -19,10 +20,13 @@ class PharmaPulseApp extends StatelessWidget {
       child: MultiBlocProvider(
         providers: [
           BlocProvider<CatalogCubit>(
-            // Одразу при створенні викликаємо loadCatalog()
             create: (context) => CatalogCubit(
               repository: context.read<CatalogRepository>(),
             )..loadCatalog(),
+          ),
+          // Додаємо провайдер для кошика
+          BlocProvider<CartCubit>(
+            create: (context) => CartCubit(),
           ),
         ],
         child: MaterialApp(
@@ -32,7 +36,7 @@ class PharmaPulseApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
             useMaterial3: true,
           ),
-          home: CatalogScreen(),
+          home: const CatalogScreen(),
         ),
       ),
     );
