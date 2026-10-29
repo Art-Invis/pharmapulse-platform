@@ -1,0 +1,215 @@
+@startuml
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam defaultFontName Arial
+
+' ============================================================
+' ЗАГАЛЬНИЙ СТИЛЬ
+' ============================================================
+
+skinparam rectangle {
+    BorderColor #34495E
+    FontColor #1F2937
+}
+
+skinparam usecase {
+    BorderColor #34495E
+    FontColor #1F2937
+    BackgroundColor #FFFFFF
+}
+
+skinparam actor {
+    BorderColor #34495E
+    FontColor #1F2937
+}
+
+skinparam ArrowColor #52616B
+
+
+' ============================================================
+' АКТОРИ
+' ============================================================
+
+actor "Клієнт" as customer #D6EAF8
+actor "Фармацевт" as pharmacist #D5F5E3
+actor "Системний адміністратор" as admin #E8DAEF
+
+
+' ============================================================
+' ЗОВНІШНІ СЕРВІСИ
+' ============================================================
+
+rectangle "Платіжний шлюз" as payment #FDEBD0
+rectangle "Сервіс сповіщень" as notifier #FDEBD0
+
+
+' ============================================================
+' ІНФОРМАЦІЙНА СИСТЕМА
+' ============================================================
+
+rectangle "PharmaPulse — Інформаційна система інтернет-аптеки" #F8FBFD {
+
+    ' --------------------------------------------------------
+    ' АВТОРИЗАЦІЯ ТА ПРОФІЛЬ
+    ' --------------------------------------------------------
+
+    usecase "Реєстрація та керування\nпрофілем" as UC_Profile #D6EAF8
+
+
+    ' --------------------------------------------------------
+    ' КАТАЛОГ
+    ' --------------------------------------------------------
+
+    usecase "Перегляд та пошук\nмедикаментів" as UC_Search #D6EAF8
+
+    usecase "Фільтрація каталогу\n(ціна, категорія,\nрецептурність, наявність)" as UC_Filter #D6EAF8
+
+
+    ' --------------------------------------------------------
+    ' КОШИК ТА ЗАМОВЛЕННЯ
+    ' --------------------------------------------------------
+
+    usecase "Керування кошиком" as UC_Cart #D6EAF8
+
+    usecase "Оформлення замовлення" as UC_PlaceOrder #D6EAF8
+
+    usecase "Вибір способу отримання\n(доставка / самовивіз)" as UC_DeliveryMethod #D6EAF8
+
+    usecase "Додавання рецепта\nдо замовлення" as UC_AttachPrescription #D6EAF8
+
+    usecase "Застосування знижки\nза програмою лояльності" as UC_ApplyDiscount #D6EAF8
+
+    usecase "Проведення\nонлайн-оплати" as UC_Payment #D6EAF8
+
+
+    ' --------------------------------------------------------
+    ' ОСОБИСТИЙ КАБІНЕТ
+    ' --------------------------------------------------------
+
+    usecase "Перегляд історії\nзамовлень" as UC_History #D6EAF8
+
+    usecase "Повторне замовлення" as UC_RepeatOrder #D6EAF8
+
+    usecase "Керування збереженими\nрецептами" as UC_Prescriptions #D6EAF8
+
+    usecase "Керування налаштуваннями\nсповіщень" as UC_NotificationSettings #D6EAF8
+
+    usecase "Перегляд бонусів\nта статусу лояльності" as UC_Loyalty #D6EAF8
+
+
+    ' --------------------------------------------------------
+    ' ФАРМАЦЕВТ
+    ' --------------------------------------------------------
+
+    usecase "Обробка та комплектація\nзамовлення" as UC_ProcessOrder #D5F5E3
+
+    usecase "Верифікація рецепта" as UC_VerifyPrescription #D5F5E3
+
+    usecase "Оновлення залишків\nв аптеці" as UC_UpdateStock #D5F5E3
+
+    usecase "Формування та відправлення\nсповіщення" as UC_SendNotification #D5F5E3
+
+
+    ' --------------------------------------------------------
+    ' АДМІНІСТРУВАННЯ
+    ' --------------------------------------------------------
+
+    usecase "Керування каталогом\nмедикаментів" as UC_ManageCatalog #E8DAEF
+
+    usecase "Керування категоріями\nта виробниками" as UC_ManageCategories #E8DAEF
+
+    usecase "Керування аптечними\nточками" as UC_ManagePharmacies #E8DAEF
+
+    usecase "Керування залишками\nмедикаментів" as UC_ManageStock #E8DAEF
+
+    usecase "Керування користувачами" as UC_ManageUsers #E8DAEF
+
+    usecase "Керування програмою\nлояльності" as UC_ManageLoyalty #E8DAEF
+
+    usecase "Керування акціями\nта знижками" as UC_ManagePromotions #E8DAEF
+}
+
+
+' ============================================================
+' КЛІЄНТ
+' ============================================================
+
+customer --> UC_Profile
+customer --> UC_Search
+customer --> UC_Cart
+customer --> UC_PlaceOrder
+customer --> UC_History
+customer --> UC_Prescriptions
+customer --> UC_NotificationSettings
+customer --> UC_Loyalty
+
+' Опціональна фільтрація
+UC_Filter ..> UC_Search : <<extend>>
+
+' Повторне замовлення з історії
+UC_RepeatOrder ..> UC_History : <<extend>>
+
+
+' ============================================================
+' ОФОРМЛЕННЯ ЗАМОВЛЕННЯ
+' ============================================================
+
+UC_PlaceOrder ..> UC_DeliveryMethod : <<include>>
+UC_PlaceOrder ..> UC_ApplyDiscount : <<include>>
+UC_PlaceOrder ..> UC_Payment : <<include>>
+
+' Рецепт потрібен лише для рецептурних препаратів
+UC_AttachPrescription ..> UC_PlaceOrder : <<extend>>
+
+' Зовнішній платіжний сервіс
+UC_Payment --> payment
+
+
+' ============================================================
+' ФАРМАЦЕВТ
+' ============================================================
+
+pharmacist --> UC_ProcessOrder
+
+' Перевірка рецепта лише за необхідності
+UC_VerifyPrescription ..> UC_ProcessOrder : <<extend>>
+
+' Оновлення залишків після обробки
+UC_ProcessOrder ..> UC_UpdateStock : <<include>>
+
+' Формування повідомлення про статус
+UC_ProcessOrder ..> UC_SendNotification : <<include>>
+
+' Зовнішній сервіс сповіщень
+UC_SendNotification --> notifier
+
+
+' ============================================================
+' АДМІНІСТРАТОР
+' ============================================================
+
+admin --> UC_ManageCatalog
+admin --> UC_ManageCategories
+admin --> UC_ManagePharmacies
+admin --> UC_ManageStock
+admin --> UC_ManageUsers
+admin --> UC_ManageLoyalty
+admin --> UC_ManagePromotions
+
+
+' ============================================================
+' ЛЕГЕНДА
+' ============================================================
+
+legend right
+|= Колір |= Роль |
+|<#D6EAF8>| Клієнтські функції |
+|<#D5F5E3>| Робота фармацевта |
+|<#E8DAEF>| Адміністрування |
+|<#FDEBD0>| Зовнішні сервіси |
+endlegend
+
+@enduml
