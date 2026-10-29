@@ -9,7 +9,12 @@ import '../cubits/catalog_state.dart';
 import '../cubits/cart_cubit.dart';
 import '../cubits/cart_state.dart';
 
+// Імпорт екрану кошика (Виправляє помилку CartScreen isn't a class)
 import 'cart_screen.dart'; 
+import '../repositories/order_repository.dart';
+import '../cubits/admin_cubit.dart';
+import 'package:frontend/screens/admin_screen.dart';
+
 
 class CatalogScreen extends StatelessWidget {
   const CatalogScreen({super.key});
@@ -21,6 +26,22 @@ class CatalogScreen extends StatelessWidget {
         title: const Text('PharmaPulse Каталог', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          
+          IconButton(
+    icon: const Icon(Icons.admin_panel_settings),
+    tooltip: 'Панель фармацевта',
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BlocProvider(
+            create: (context) => AdminCubit(OrderRepository())..loadOrders(),
+            child: AdminScreen(),
+          ),
+        ),
+      );
+    },
+  ),
           // Обгортка для відслідковування стану кошика
           BlocBuilder<CartCubit, CartState>(
             builder: (context, cartState) {

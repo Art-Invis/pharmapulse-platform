@@ -6,7 +6,7 @@ from app.schemas.order import OrderCreate, OrderResponse
 from app.patterns.builder import OrderBuilder
 from app.patterns.strategy import get_loyalty_strategy
 from app.patterns.observer import OrderEventManager
-
+from typing import List
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 # Глобальний менеджер подій для спрощення контексту
@@ -63,3 +63,10 @@ def update_order_status(order_id: int, new_status: str, db: Session = Depends(ge
     event_manager.notify_observers(order, event_type=f"order_{new_status.lower()}")
     
     return order
+
+@router.get("/", response_model=List[OrderResponse])
+def get_all_orders(db: Session = Depends(get_db)):
+    """Повертає список усіх замовлень для панелі адміністратора."""
+    # Відсортуємо від найновіших до найстаріших
+    orders = db.query(Order).order_by(Order.created_at.desc()).all()
+    return orders
