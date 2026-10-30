@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import DatabaseConnection, Base
 from app.api import orders, catalog
 from app.patterns.observer import CustomerNotificationDispatcher, PharmacyStockSynchronizer
-
+from app.api import orders, catalog, users
 app = FastAPI(title="PharmaPulse API")
 
 # Налаштування CORS для локальної розробки (щоб Flutter Web міг робити запити)
@@ -27,6 +27,9 @@ def on_startup():
 # Реєстрація роутерів
 app.include_router(orders.router)
 app.include_router(catalog.router)
+app.include_router(orders.router)
+app.include_router(catalog.router)
+app.include_router(users.router)
 
 @app.get("/")
 def health_check():
