@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-
+import 'role_selection_screen.dart';
 // Використовуємо абсолютні імпорти, щоб уникнути конфліктів у Dart розширенні
 import 'package:frontend/cubits/admin_cubit.dart';
 
@@ -12,6 +12,17 @@ class AdminScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // ДОДАЄМО КНОПКУ ВИХОДУ ЗЛІВА
+        leading: IconButton(
+          icon: const Icon(Icons.exit_to_app),
+          tooltip: 'Змінити роль',
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+            );
+          },
+        ),
         title: const Text('Панель Фармацевта (Адмінка)'),
         backgroundColor: Colors.blueGrey.shade800,
         foregroundColor: Colors.white,

@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Імпорти для каталогу
+// Імпорти для каталогу та кошика
 import '../cubits/catalog_cubit.dart';
 import '../cubits/catalog_state.dart';
-
-// Обов'язкові імпорти для кошика
 import '../cubits/cart_cubit.dart';
 import '../cubits/cart_state.dart';
-import '../repositories/user_repository.dart';
-import '../cubits/cabinet_cubit.dart';
-import 'cabinet_screen.dart';
-// Імпорт екрану кошика (Виправляє помилку CartScreen isn't a class)
-import 'cart_screen.dart';
 
+// Імпорти для авторизації та кабінету
+import '../cubits/auth_cubit.dart';
+import '../cubits/cabinet_cubit.dart';
+import '../repositories/user_repository.dart';
+import 'role_selection_screen.dart';
+// Імпорти екранів
+import 'cart_screen.dart';
+import 'cabinet_screen.dart';
 
 class CatalogScreen extends StatelessWidget {
   const CatalogScreen({super.key});
@@ -22,30 +23,43 @@ class CatalogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'PharmaPulse Каталог',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        leading: IconButton(
+          icon: const Icon(Icons.exit_to_app),
+          tooltip: 'Змінити роль',
+          onPressed: () {
+            context.read<AuthCubit>().logout(); // Очищаємо вибраного юзера
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+            );
+          },
         ),
+        title: const Text('PharmaPulse Каталог', style: TextStyle(fontWeight: FontWeight.bold)),
+        
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          // 1. Кнопка Особистого кабінету
           IconButton(
             icon: const Icon(Icons.person),
             tooltip: 'Особистий кабінет',
             onPressed: () {
+              // Беремо динамічний ID користувача з глобального стану
+              final userId = context.read<AuthCubit>().state.userId!;
+
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => BlocProvider(
                     create: (context) =>
-                        CabinetCubit(UserRepository())..loadProfile(),
+                        CabinetCubit(UserRepository())..loadProfile(userId),
                     child: const CabinetScreen(),
                   ),
                 ),
               );
             },
           ),
-          
-          // Обгортка для відслідковування стану кошика
+
+          // 2. Іконка кошика з лічильником
           BlocBuilder<CartCubit, CartState>(
             builder: (context, cartState) {
               return Badge(
@@ -54,8 +68,8 @@ class CatalogScreen extends StatelessWidget {
                 offset: const Offset(-8, 8),
                 child: IconButton(
                   icon: const Icon(Icons.shopping_cart),
+                  tooltip: 'Кошик',
                   onPressed: () {
-                    // Перехід до кошика
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -100,11 +114,10 @@ class CatalogScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  // InkWell додає красивий ефект "хвилі" при кліку/наведенні
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () {
-                      // Тут можна зробити перехід на детальну сторінку ліків у майбутньому
+                      // У майбутньому тут можна додати перехід на деталі товару
                     },
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -170,13 +183,10 @@ class CatalogScreen extends StatelessWidget {
                                       fontWeight: FontWeight.bold,
                                     ),
                               ),
-                              // Залита кнопка з викликом CartCubit
                               FilledButton(
                                 onPressed: () {
                                   context.read<CartCubit>().addMedicine(med);
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(context).clearSnackBars();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(

@@ -92,3 +92,14 @@ class OrderItem(Base):
 
     order = relationship("Order", back_populates="items")
     medicine = relationship("Medicine")
+
+class Medicine(Base):
+    __tablename__ = "medicines"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    active_substance = Column(String)
+    price = Column(Float)
+    is_prescription_required = Column(Boolean, default=False)
+    manufacturer = Column(String)
+    stock = Column(Integer, default=15) # НОВЕ ПОЛЕ: Залишок на складі

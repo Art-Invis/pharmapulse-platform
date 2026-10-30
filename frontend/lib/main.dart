@@ -5,6 +5,7 @@ import 'repositories/catalog_repository.dart';
 import 'cubits/catalog_cubit.dart';
 import 'cubits/cart_cubit.dart';
 import 'screens/catalog_screen.dart';
+import 'cubits/auth_cubit.dart';
 import 'screens/role_selection_screen.dart';
 void main() {
   runApp(const PharmaPulseApp());
@@ -19,6 +20,7 @@ class PharmaPulseApp extends StatelessWidget {
       create: (context) => CatalogRepository(),
       child: MultiBlocProvider(
         providers: [
+          BlocProvider<AuthCubit>(create: (context) => AuthCubit()),
           BlocProvider<CatalogCubit>(
             create: (context) => CatalogCubit(
               repository: context.read<CatalogRepository>(),

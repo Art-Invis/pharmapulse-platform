@@ -33,7 +33,15 @@ class OrderRepository {
     );
 
     if (response.statusCode != 200) {
-      throw Exception('Помилка оформлення замовлення: ${response.body}');
+      String errorMessage = 'Помилка сервера';
+      try {
+        // Намагаємося витягнути красивий текст помилки з FastAPI (поле detail)
+        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+        if (decoded['detail'] != null) {
+          errorMessage = decoded['detail'];
+        }
+      } catch (_) {}
+      throw Exception(errorMessage); // Кидаємо чисту помилку
     }
   }
 

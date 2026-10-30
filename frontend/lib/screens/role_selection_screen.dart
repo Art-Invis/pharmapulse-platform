@@ -4,7 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'catalog_screen.dart';
 import 'admin_screen.dart';
 import '../cubits/admin_cubit.dart';
+import '../cubits/auth_cubit.dart';
 import '../repositories/order_repository.dart';
+import '../repositories/user_repository.dart';
+import '../models/user.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -35,7 +38,7 @@ class RoleSelectionScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              // Використовуємо Wrap, щоб картки гарно переносилися на вузьких екранах
+              // Використовуємо Wrap для адаптивності
               Wrap(
                 spacing: 32,
                 runSpacing: 32,
@@ -47,11 +50,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     icon: Icons.person,
                     color: Colors.teal,
                     onTap: () {
-                      // Переходимо на вітрину для клієнтів (без можливості повернутися назад кнопкою Back)
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (context) => const CatalogScreen()),
-                      );
+                      _showClientLoginDialog(context);
                     },
                   ),
                   _buildRoleCard(
@@ -60,7 +59,7 @@ class RoleSelectionScreen extends StatelessWidget {
                     icon: Icons.admin_panel_settings,
                     color: Colors.blueGrey,
                     onTap: () {
-                      // Переходимо в адмінку, одразу ініціалізуючи Cubit
+                      // Перехід в адмінку з ініціалізацією AdminCubit
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
@@ -112,6 +111,60 @@ class RoleSelectionScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showClientLoginDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Увійти як...'),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: FutureBuilder<List<User>>(
+              future: UserRepository().getUsers(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Text('Помилка: ${snapshot.error}');
+                }
+                
+                final users = snapshot.data!;
+                if (users.isEmpty) {
+                  return const Center(child: Text('Користувачів не знайдено'));
+                }
+
+                return ListView.builder(
+                  itemCount: users.length,
+                  itemBuilder: (context, index) {
+                    final user = users[index];
+                    return ListTile(
+                      leading: const Icon(Icons.person),
+                      title: Text(user.fullName),
+                      subtitle: Text('Лояльність: ${user.loyaltyTier}'),
+                      onTap: () {
+                        // 1. Зберігаємо вибраного юзера глобально
+                        context.read<AuthCubit>().login(user.id, user.fullName, user.loyaltyTier);
+                        // 2. Закриваємо діалогове вікно
+                        Navigator.pop(dialogContext);
+                        // 3. Відкриваємо вітрину
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CatalogScreen()),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        );
+      }
     );
   }
 }
