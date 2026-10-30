@@ -8,12 +8,11 @@ import '../cubits/catalog_state.dart';
 // Обов'язкові імпорти для кошика
 import '../cubits/cart_cubit.dart';
 import '../cubits/cart_state.dart';
-
+import '../repositories/user_repository.dart';
+import '../cubits/cabinet_cubit.dart';
+import 'cabinet_screen.dart';
 // Імпорт екрану кошика (Виправляє помилку CartScreen isn't a class)
-import 'cart_screen.dart'; 
-import '../repositories/order_repository.dart';
-import '../cubits/admin_cubit.dart';
-import 'package:frontend/screens/admin_screen.dart';
+import 'cart_screen.dart';
 
 
 class CatalogScreen extends StatelessWidget {
@@ -23,25 +22,29 @@ class CatalogScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PharmaPulse Каталог', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'PharmaPulse Каталог',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          
           IconButton(
-    icon: const Icon(Icons.admin_panel_settings),
-    tooltip: 'Панель фармацевта',
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BlocProvider(
-            create: (context) => AdminCubit(OrderRepository())..loadOrders(),
-            child: AdminScreen(),
+            icon: const Icon(Icons.person),
+            tooltip: 'Особистий кабінет',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BlocProvider(
+                    create: (context) =>
+                        CabinetCubit(UserRepository())..loadProfile(),
+                    child: const CabinetScreen(),
+                  ),
+                ),
+              );
+            },
           ),
-        ),
-      );
-    },
-  ),
+          
           // Обгортка для відслідковування стану кошика
           BlocBuilder<CartCubit, CartState>(
             builder: (context, cartState) {
@@ -55,7 +58,9 @@ class CatalogScreen extends StatelessWidget {
                     // Перехід до кошика
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const CartScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const CartScreen(),
+                      ),
                     );
                   },
                 ),
@@ -71,11 +76,14 @@ class CatalogScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           } else if (state is CatalogError) {
             return Center(
-              child: Text(state.message, style: const TextStyle(color: Colors.red, fontSize: 16)),
+              child: Text(
+                state.message,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
             );
           } else if (state is CatalogLoaded) {
             final medicines = state.medicines;
-            
+
             return GridView.builder(
               padding: const EdgeInsets.all(24),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -89,7 +97,9 @@ class CatalogScreen extends StatelessWidget {
                 final med = medicines[index];
                 return Card(
                   elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   // InkWell додає красивий ефект "хвилі" при кліку/наведенні
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
@@ -106,30 +116,43 @@ class CatalogScreen extends StatelessWidget {
                               child: Icon(
                                 Icons.medication,
                                 size: 72,
-                                color: med.isPrescriptionRequired ? Colors.red.shade300 : Colors.teal.shade400,
+                                color: med.isPrescriptionRequired
+                                    ? Colors.red.shade300
+                                    : Colors.teal.shade400,
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             med.name,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             med.manufacturer,
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey.shade600),
                           ),
                           const SizedBox(height: 8),
                           if (med.isPrescriptionRequired)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.red.shade50,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text('За рецептом', style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                              child: Text(
+                                'За рецептом',
+                                style: TextStyle(
+                                  color: Colors.red.shade700,
+                                  fontSize: 12,
+                                ),
+                              ),
                             )
                           else
                             const SizedBox(height: 24),
@@ -139,26 +162,36 @@ class CatalogScreen extends StatelessWidget {
                             children: [
                               Text(
                                 '${med.price.toStringAsFixed(2)} ₴',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                               ),
                               // Залита кнопка з викликом CartCubit
                               FilledButton(
                                 onPressed: () {
                                   context.read<CartCubit>().addMedicine(med);
-                                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                  ScaffoldMessenger.of(
+                                    context,
+                                  ).hideCurrentSnackBar();
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text('${med.name} додано до кошика!'),
+                                      content: Text(
+                                        '${med.name} додано до кошика!',
+                                      ),
                                       duration: const Duration(seconds: 2),
                                       action: SnackBarAction(
                                         label: 'Кошик',
                                         onPressed: () {
                                           Navigator.push(
                                             context,
-                                            MaterialPageRoute(builder: (context) => const CartScreen()),
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  const CartScreen(),
+                                            ),
                                           );
                                         },
                                       ),

@@ -5,7 +5,7 @@ import 'repositories/catalog_repository.dart';
 import 'cubits/catalog_cubit.dart';
 import 'cubits/cart_cubit.dart';
 import 'screens/catalog_screen.dart';
-
+import 'screens/role_selection_screen.dart';
 void main() {
   runApp(const PharmaPulseApp());
 }
@@ -36,7 +36,8 @@ class PharmaPulseApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
             useMaterial3: true,
           ),
-          home: const CatalogScreen(),
+          // Змінюємо стартову сторінку!
+          home: const RoleSelectionScreen(),
         ),
       ),
     );
