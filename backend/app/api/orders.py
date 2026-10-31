@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload 
 from app.core.database import get_db
 from app.models.entities import Order, User, Medicine, PharmacyBranch
 from app.schemas.order import OrderCreate, OrderResponse
@@ -68,5 +68,5 @@ def update_order_status(order_id: int, new_status: str, db: Session = Depends(ge
 def get_all_orders(db: Session = Depends(get_db)):
     """Повертає список усіх замовлень для панелі адміністратора."""
     # Відсортуємо від найновіших до найстаріших
-    orders = db.query(Order).order_by(Order.created_at.desc()).all()
+    orders = db.query(Order).options(joinedload(Order.items)).order_by(Order.created_at.desc()).all()
     return orders
