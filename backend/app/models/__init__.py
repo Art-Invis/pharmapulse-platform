@@ -1,9 +1,9 @@
 from app.models.entities import (
+    Base,
     User,
     Medicine,
-    PharmacyBranch,
     Prescription,
+    PharmacyBranch,
     Order,
-    OrderItem,
-    pharmacy_stocks,
+    OrderItem
 )

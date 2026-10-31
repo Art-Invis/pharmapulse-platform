@@ -14,15 +14,15 @@ class CatalogInitial extends CatalogState {}
 class CatalogLoading extends CatalogState {}
 
 class CatalogLoaded extends CatalogState {
-  final List<Medicine> medicines;
+  final List<Medicine> allMedicines;      // Всі ліки з бази
+  final List<Medicine> filteredMedicines; // Ліки після застосування фільтрів
   final List<PharmacyBranch> branches;
 
-  const CatalogLoaded(this.medicines, this.branches);
+  const CatalogLoaded(this.allMedicines, this.filteredMedicines, this.branches);
 
   @override
-  List<Object> get props => [medicines, branches];
+  List<Object> get props => [allMedicines, filteredMedicines, branches];
 }
-
 class CatalogError extends CatalogState {
   final String message;
 

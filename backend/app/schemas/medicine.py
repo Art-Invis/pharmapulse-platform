@@ -6,6 +6,7 @@ class MedicineBase(BaseModel):
     price: float
     is_prescription_required: bool
     manufacturer: str
+    stock: int 
 
 class MedicineResponse(MedicineBase):
     id: int

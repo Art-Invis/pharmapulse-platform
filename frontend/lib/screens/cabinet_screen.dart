@@ -3,9 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../cubits/cabinet_cubit.dart';
+import '../cubits/auth_cubit.dart';
 import '../cubits/cart_cubit.dart';
 import '../cubits/catalog_cubit.dart';
 import '../cubits/catalog_state.dart';
+import '../repositories/order_repository.dart';
 import '../models/order.dart';
 import '../models/user_profile.dart';
 import '../models/medicine.dart';
@@ -31,14 +33,16 @@ class CabinetScreen extends StatelessWidget {
             final profile = state.profile;
 
             return DefaultTabController(
-              length: 3,
+              length: 4, // Тепер у нас 4 вкладки
               child: Column(
                 children: [
                   const TabBar(
+                    isScrollable: true,
                     tabs: [
                       Tab(icon: Icon(Icons.person), text: 'Профіль'),
                       Tab(icon: Icon(Icons.history), text: 'Історія'),
                       Tab(icon: Icon(Icons.receipt_long), text: 'Рецепти'),
+                      Tab(icon: Icon(Icons.notifications), text: 'Сповіщення'), // Закриває пункт ТЗ №5
                     ],
                   ),
                   Expanded(
@@ -47,6 +51,7 @@ class CabinetScreen extends StatelessWidget {
                         _buildProfileTab(context, profile),
                         _buildOrdersTab(context, profile.orders),
                         _buildPrescriptionsTab(profile.prescriptions),
+                        _buildNotificationsTab(),
                       ],
                     ),
                   ),
@@ -61,9 +66,6 @@ class CabinetScreen extends StatelessWidget {
   }
 
   Widget _buildProfileTab(BuildContext context, UserProfile profile) {
-    // Демонстраційний розрахунок бонусів (для візуалізації пункту ТЗ про бонусну картку)
-    final int bonusBalance = profile.loyaltyTier == 'Premium' ? 450 : (profile.loyaltyTier == 'Social' ? 120 : 50);
-
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -71,32 +73,6 @@ class CabinetScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Text(profile.fullName, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
         Text(profile.email, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-        const SizedBox(height: 24),
-        
-        // ВІЗУАЛІЗАЦІЯ БОНУСНОЇ КАРТКИ (ТЗ Пункт 4)
-        Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Theme.of(context).colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Бонусна картка', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    Text('$bonusBalance балів', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary)),
-                  ],
-                ),
-                const Icon(Icons.wallet_giftcard, size: 48, color: Colors.teal),
-              ],
-            ),
-          ),
-        ),
-        
         const Divider(height: 48),
         ListTile(
           leading: const Icon(Icons.star, color: Colors.orange),
@@ -105,13 +81,13 @@ class CabinetScreen extends StatelessWidget {
             label: Text(profile.loyaltyTier, style: const TextStyle(fontWeight: FontWeight.bold)),
             backgroundColor: Colors.orange.shade100,
           ),
-          subtitle: const Text('Знижки автоматично застосовуються в кошику.'),
+          subtitle: const Text('Знижки автоматично застосовуються в кошику завдяки патерну Strategy.'),
         ),
         ListTile(
           leading: const Icon(Icons.notifications_active, color: Colors.teal),
           title: const Text('Сповіщення про наявність'),
           trailing: Switch(value: true, onChanged: (val) {}),
-          subtitle: const Text('Отримувати SMS при появі ліків та акціях.'),
+          subtitle: const Text('Отримувати повідомлення при появі потрібних ліків.'),
         ),
       ],
     );
@@ -134,62 +110,82 @@ class CabinetScreen extends StatelessWidget {
         final date = DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(order.createdAt).toLocal());
         
         return Card(
-          elevation: 2,
-          margin: const EdgeInsets.only(bottom: 12),
           child: ExpansionTile(
             title: Text('Замовлення #${order.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
             subtitle: Text('Дата: $date\nСтатус: ${order.status}'),
             trailing: Text(
               '${order.finalPrice.toStringAsFixed(2)} ₴', 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 16,
+                color: order.status == 'Cancelled' ? Colors.grey : Colors.black
+              )
             ),
             children: [
               const Divider(),
-              // Виводимо список товарів у цьому замовленні
               ...order.items.map((item) {
                 final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
                 final medName = med?.name ?? 'Невідомий препарат';
                 return ListTile(
                   dense: true,
-                  leading: const Icon(Icons.medication, size: 24, color: Colors.teal),
                   title: Text(medName),
                   trailing: Text('${item.quantity} шт. x ${item.pricePerUnit} ₴'),
                 );
               }),
-              // Кнопка повторення замовлення
               Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: FilledButton.icon(
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Повторити замовлення'),
-                  onPressed: () {
-                    final cartCubit = context.read<CartCubit>();
-                    cartCubit.clearCart();
-                    
-                    bool hasMissingItems = false;
-                    
-                    for (var item in order.items) {
-                      final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
-                      if (med != null && med.stock >= item.quantity) {
-                        for (int i = 0; i < item.quantity; i++) {
-                          cartCubit.addMedicine(med);
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (order.status == 'Pending') ...[
+                      TextButton.icon(
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        label: const Text('Скасувати', style: TextStyle(color: Colors.red)),
+                        onPressed: () async {
+                          try {
+                            await OrderRepository().updateOrderStatus(order.id, 'Cancelled');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Замовлення скасовано'), backgroundColor: Colors.orange)
+                            );
+                            final userId = context.read<AuthCubit>().state.userId!;
+                            context.read<CabinetCubit>().loadProfile(userId);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Помилка: $e'), backgroundColor: Colors.red)
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                    FilledButton.icon(
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Повторити'),
+                      onPressed: () {
+                        final cartCubit = context.read<CartCubit>();
+                        cartCubit.clearCart();
+                        
+                        bool hasMissingItems = false;
+                        for (var item in order.items) {
+                          final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
+                          if (med != null && med.stock >= item.quantity) {
+                            for (int i = 0; i < item.quantity; i++) {
+                              cartCubit.addMedicine(med);
+                            }
+                          } else {
+                            hasMissingItems = true;
+                          }
                         }
-                      } else {
-                        hasMissingItems = true;
-                      }
-                    }
-                    
-                    if (hasMissingItems) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Деяких товарів зараз немає в достатній кількості на складі.'), 
-                          backgroundColor: Colors.orange
-                        )
-                      );
-                    }
-                    
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
-                  },
+                        
+                        if (hasMissingItems) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Деяких товарів зараз немає в достатній кількості.'), backgroundColor: Colors.orange)
+                          );
+                        }
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                      },
+                    ),
+                  ],
                 ),
               )
             ],
@@ -210,12 +206,53 @@ class CabinetScreen extends StatelessWidget {
         return Card(
           child: ListTile(
             leading: Icon(Icons.medical_information, color: p.isVerified ? Colors.green : Colors.red),
-            title: Text('Рецепт: ${p.code}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text('Рецепт: ${p.code}'),
             subtitle: Text('Лікар: ${p.doctorFullName}\nДійсний до: $date'),
-            trailing: p.isVerified 
-                ? const Icon(Icons.check_circle, color: Colors.green) 
-                : const Icon(Icons.pending, color: Colors.orange),
+            trailing: p.isVerified ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.pending, color: Colors.orange),
             isThreeLine: true,
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsTab() {
+    // Фіктивний список сповіщень для демонстрації функціоналу
+    final notifications = [
+      {
+        'title': 'Сезонна акція!',
+        'body': 'Знижка 20% на всі вітаміни до кінця тижня. Підготуйтеся до сезону!',
+        'icon': Icons.percent,
+        'color': Colors.orange,
+      },
+      {
+        'title': 'Препарат знову в наявності',
+        'body': 'Ліки "Німесил", які ви шукали, щойно надійшли в найближчу аптеку.',
+        'icon': Icons.medical_information,
+        'color': Colors.teal,
+      },
+      {
+        'title': 'Нагадування',
+        'body': 'У вас закінчується "Корвалмент". Бажаєте повторити замовлення?',
+        'icon': Icons.alarm,
+        'color': Colors.blue,
+      },
+    ];
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: notifications.length,
+      itemBuilder: (context, index) {
+        final note = notifications[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: (note['color'] as Color).withOpacity(0.2),
+              child: Icon(note['icon'] as IconData, color: note['color'] as Color),
+            ),
+            title: Text(note['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(note['body'] as String),
           ),
         );
       },

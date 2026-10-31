@@ -5,6 +5,7 @@ class Medicine {
   final double price;
   final bool isPrescriptionRequired;
   final String manufacturer;
+  final int stock; // НОВЕ ПОЛЕ
 
   Medicine({
     required this.id,
@@ -13,17 +14,18 @@ class Medicine {
     required this.price,
     required this.isPrescriptionRequired,
     required this.manufacturer,
+    required this.stock, // НОВЕ ПОЛЕ
   });
 
-  // Фабричний метод для парсингу JSON від бекенду
   factory Medicine.fromJson(Map<String, dynamic> json) {
     return Medicine(
       id: json['id'],
       name: json['name'],
       activeSubstance: json['active_substance'],
-      price: (json['price'] as num).toDouble(), // num.toDouble() захищає від помилок парсингу int/double
+      price: (json['price'] as num).toDouble(),
       isPrescriptionRequired: json['is_prescription_required'],
       manufacturer: json['manufacturer'],
+      stock: json['stock'] ?? 0, // НОВЕ ПОЛЕ (з підстраховкою)
     );
   }
 }

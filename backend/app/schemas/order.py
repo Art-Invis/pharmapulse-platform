@@ -1,27 +1,37 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
+# --- ВХІДНІ ДАНІ (Що приходить з Flutter) ---
 class OrderItemCreate(BaseModel):
     medicine_id: int
-    quantity: int = Field(gt=0, description="Кількість має бути більшою за нуль")
+    quantity: int
 
 class OrderCreate(BaseModel):
     user_id: int
-    delivery_type: str = Field(pattern="^(Delivery|Pickup)$")
-    delivery_address: Optional[str] = None
+    delivery_type: str
     branch_id: Optional[int] = None
-    prescription_id: Optional[int] = None
-    items: List[OrderItemCreate]
+    items: List[OrderItemCreate] # Тепер бекенд приймає список товарів!
+
+# --- ВИХІДНІ ДАНІ (Що відправляється у Flutter) ---
+class OrderItemResponse(BaseModel):
+    medicine_id: int
+    quantity: int
+    price_per_unit: float
+
+    class Config:
+        from_attributes = True
 
 class OrderResponse(BaseModel):
     id: int
     user_id: int
     delivery_type: str
+    branch_id: Optional[int] = None
     status: str
     raw_total: float
     final_price: float
     created_at: datetime
+    items: List[OrderItemResponse] = [] 
 
     class Config:
         from_attributes = True
