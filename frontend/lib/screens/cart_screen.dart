@@ -223,33 +223,58 @@ class _CartScreenState extends State<CartScreen> {
                         const Divider(height: 32),
 
                         // Повідомлення про знижку лояльності
-                        BlocBuilder<AuthCubit, AuthState>(
-                          builder: (context, authState) {
-                            if (authState.loyaltyTier == 'Premium') {
-                              return const Padding(
-                                padding: EdgeInsets.only(bottom: 8.0),
-                                child: Text('✨ Застосовано Premium знижку (-10%)', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-                              );
-                            } else if (authState.loyaltyTier == 'Social') {
-                              return const Padding(
-                                padding: EdgeInsets.only(bottom: 8.0),
-                                child: Text('💙 Застосовано Соціальну знижку (-5%)', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
-                              );
-                            }
-                            return const SizedBox.shrink();
-                          },
-                        ),
+                        const Spacer(),
+                        const Divider(height: 32),
                         
-                        // Підсумкова сума (поки без знижки на екрані, знижку розраховує бекенд)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Разом:', style: TextStyle(fontSize: 18)),
-                            Text(
-                              '${cartState.totalPrice.toStringAsFixed(2)} ₴', 
-                              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)
-                            ),
-                          ],
+                        // РОЗРАХУНОК БОНУСНОЇ КАРТКИ (ЛОЯЛЬНОСТІ)
+                        Builder(
+                          builder: (context) {
+                            // Отримуємо статус лояльності поточного клієнта
+                            final loyaltyTier = context.read<AuthCubit>().state.loyaltyTier ?? 'Standard';
+                            double discountPercent = 0.0;
+                            
+                            if (loyaltyTier == 'Premium') discountPercent = 0.15; // 15% знижки
+                            if (loyaltyTier == 'Social') discountPercent = 0.10; // 10% знижки
+                            
+                            final rawTotal = cartState.totalPrice;
+                            final discountAmount = rawTotal * discountPercent;
+                            final finalPrice = rawTotal - discountAmount;
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Сума товарів:'),
+                                    Text('${rawTotal.toStringAsFixed(2)} ₴'),
+                                  ],
+                                ),
+                                if (discountPercent > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Бонусна картка ($loyaltyTier):', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                        Text('- ${discountAmount.toStringAsFixed(2)} ₴', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text('Разом до сплати:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      '${finalPrice.toStringAsFixed(2)} ₴', 
+                                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.teal)
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          }
                         ),
                         const SizedBox(height: 24),
                         
