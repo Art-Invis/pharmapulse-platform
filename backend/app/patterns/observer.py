@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-# ВИДАЛЕНО: pharmacy_stocks, ДОДАНО: Medicine
 from app.models.entities import Order, PharmacyBranch, Medicine 
 from app.patterns.factory import EmailNotificationFactory, SmsNotificationFactory
 from app.core.database import DatabaseConnection
@@ -40,8 +39,11 @@ class PharmacyStockSynchronizer(IOrderObserver):
     def update(self, order: Order, event_type: str) -> None:
         # Патерн Observer: Відслідковуємо скасування замовлення і повертаємо товар на склад
         if event_type == "order_cancelled":
-            db_generator = DatabaseConnection.get_instance().get_session()
-            db = next(db_generator)
+            
+            # БЕЗПЕЧНЕ ОТРИМАННЯ СЕСІЇ (працює і з yield, і з return)
+            session_obj = DatabaseConnection.get_instance().get_session()
+            db = next(session_obj) if hasattr(session_obj, '__next__') else session_obj
+            
             try:
                 for item in order.items:
                     # Шукаємо препарат у базі та повертаємо йому кількість
