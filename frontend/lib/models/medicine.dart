@@ -5,7 +5,7 @@ class Medicine {
   final double price;
   final bool isPrescriptionRequired;
   final String manufacturer;
-  final int stock; // НОВЕ ПОЛЕ
+  final int stock; 
 
   Medicine({
     required this.id,
@@ -14,7 +14,7 @@ class Medicine {
     required this.price,
     required this.isPrescriptionRequired,
     required this.manufacturer,
-    required this.stock, // НОВЕ ПОЛЕ
+    required this.stock, 
   });
 
   factory Medicine.fromJson(Map<String, dynamic> json) {
@@ -25,7 +25,7 @@ class Medicine {
       price: (json['price'] as num).toDouble(),
       isPrescriptionRequired: json['is_prescription_required'],
       manufacturer: json['manufacturer'],
-      stock: json['stock'] ?? 0, // НОВЕ ПОЛЕ (з підстраховкою)
+      stock: json['stock'] ?? 0, 
     );
   }
 }

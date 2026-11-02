@@ -24,7 +24,6 @@ class _CartScreenState extends State<CartScreen> {
   void _submitOrder(BuildContext context, CartState cartState) async {
     if (cartState.items.isEmpty) return;
 
-    // Безпечно перевіряємо, чи є ID користувача
     final authState = context.read<AuthCubit>().state;
     if (authState.userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,7 +49,6 @@ class _CartScreenState extends State<CartScreen> {
       
       if (!mounted) return;
       
-      // Очищаємо кошик після успішного замовлення
       context.read<CartCubit>().clearCart();
       
       ScaffoldMessenger.of(context).showSnackBar(
@@ -59,13 +57,11 @@ class _CartScreenState extends State<CartScreen> {
           backgroundColor: Colors.green,
         )
       );
-      Navigator.pop(context); // Повертаємось в каталог
+      Navigator.pop(context); 
     } catch (e) {
-      // Очищаємо всі попередні сповіщення, щоб нове з'явилося миттєво
       ScaffoldMessenger.of(context).clearSnackBars(); 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          // e.toString() додає слово "Exception:", ми його прибираємо для краси
           content: Text(e.toString().replaceAll('Exception: ', '')), 
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 4),
@@ -94,7 +90,6 @@ class _CartScreenState extends State<CartScreen> {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Ліва частина: Список товарів з елементами керування
               Expanded(
                 flex: 2,
                 child: ListView.builder(
@@ -140,7 +135,6 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            // Загальна ціна за позицію
                             SizedBox(
                               width: 80,
                               child: Text(
@@ -150,7 +144,6 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // Кнопка видалення товару
                             IconButton(
                               icon: const Icon(Icons.delete_outline, color: Colors.red),
                               onPressed: () => context.read<CartCubit>().removeMedicine(item.medicine.id),
@@ -163,7 +156,6 @@ class _CartScreenState extends State<CartScreen> {
                 ),
               ),
               
-              // Права частина: Checkout форма (Оформлення)
               Expanded(
                 flex: 1,
                 child: Card(
@@ -178,7 +170,6 @@ class _CartScreenState extends State<CartScreen> {
                         const Text('Оформлення', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         const Divider(height: 32),
                         
-                        // Вибір типу доставки
                         DropdownButtonFormField<String>(
                           value: _deliveryType,
                           decoration: const InputDecoration(labelText: 'Спосіб отримання', border: OutlineInputBorder()),
@@ -195,7 +186,6 @@ class _CartScreenState extends State<CartScreen> {
                         ),
                         const SizedBox(height: 16),
                         
-                        // Вибір аптеки (тільки для самовивозу)
                         if (_deliveryType == 'Pickup')
                           BlocBuilder<CatalogCubit, CatalogState>(
                             builder: (context, catalogState) {
@@ -222,14 +212,11 @@ class _CartScreenState extends State<CartScreen> {
                         const Spacer(),
                         const Divider(height: 32),
 
-                        // Повідомлення про знижку лояльності
                         const Spacer(),
                         const Divider(height: 32),
                         
-                        // РОЗРАХУНОК БОНУСНОЇ КАРТКИ (ЛОЯЛЬНОСТІ)
                         Builder(
                           builder: (context) {
-                            // Отримуємо статус лояльності поточного клієнта
                             final loyaltyTier = context.read<AuthCubit>().state.loyaltyTier ?? 'Standard';
                             double discountPercent = 0.0;
                             

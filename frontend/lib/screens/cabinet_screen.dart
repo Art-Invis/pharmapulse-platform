@@ -33,7 +33,7 @@ class CabinetScreen extends StatelessWidget {
             final profile = state.profile;
 
             return DefaultTabController(
-              length: 4, // Тепер у нас 4 вкладки
+              length: 4, 
               child: Column(
                 children: [
                   const TabBar(
@@ -42,7 +42,7 @@ class CabinetScreen extends StatelessWidget {
                       Tab(icon: Icon(Icons.person), text: 'Профіль'),
                       Tab(icon: Icon(Icons.history), text: 'Історія'),
                       Tab(icon: Icon(Icons.receipt_long), text: 'Рецепти'),
-                      Tab(icon: Icon(Icons.notifications), text: 'Сповіщення'), // Закриває пункт ТЗ №5
+                      Tab(icon: Icon(Icons.notifications), text: 'Сповіщення'), 
                     ],
                   ),
                   Expanded(
@@ -69,25 +69,58 @@ class CabinetScreen extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        const CircleAvatar(radius: 50, child: Icon(Icons.person, size: 50)),
-        const SizedBox(height: 16),
-        Text(profile.fullName, textAlign: TextAlign.center, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(profile.email, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
-        const Divider(height: 48),
-        ListTile(
-          leading: const Icon(Icons.star, color: Colors.orange),
-          title: const Text('Рівень лояльності'),
-          trailing: Chip(
-            label: Text(profile.loyaltyTier, style: const TextStyle(fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.orange.shade100,
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.teal.shade800, Colors.teal.shade400],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))
+            ]
           ),
-          subtitle: const Text('Знижки автоматично застосовуються в кошику завдяки патерну Strategy.'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('PHARMAPULSE BONUS', style: TextStyle(color: Colors.white70, letterSpacing: 2)),
+                  Icon(Icons.contactless, color: Colors.white70),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text('Ваш кешбек-баланс:', style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text(
+                '${profile.bonusBalance.toStringAsFixed(2)} ₴', 
+                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(profile.fullName.toUpperCase(), style: const TextStyle(color: Colors.white, letterSpacing: 1)),
+                  Text(profile.loyaltyTier.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: 32),
+        
+        ListTile(
+          leading: const Icon(Icons.info_outline, color: Colors.teal),
+          title: const Text('Як працює картка?'),
+          subtitle: const Text('За кожне успішно виконане замовлення ви автоматично отримуєте 5% кешбеку на цей рахунок.'),
+        ),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.notifications_active, color: Colors.teal),
           title: const Text('Сповіщення про наявність'),
           trailing: Switch(value: true, onChanged: (val) {}),
-          subtitle: const Text('Отримувати повідомлення при появі потрібних ліків.'),
         ),
       ],
     );

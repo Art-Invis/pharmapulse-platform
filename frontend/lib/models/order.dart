@@ -22,7 +22,7 @@ class Order {
   final double rawTotal;
   final double finalPrice;
   final String createdAt;
-  final List<OrderItem> items; // ДОДАНО
+  final List<OrderItem> items; 
 
   Order({
     required this.id,
@@ -32,7 +32,7 @@ class Order {
     required this.rawTotal,
     required this.finalPrice,
     required this.createdAt,
-    required this.items, // ДОДАНО
+    required this.items, 
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -46,7 +46,7 @@ class Order {
       createdAt: json['created_at'],
       items: json['items'] != null 
           ? (json['items'] as List).map((i) => OrderItem.fromJson(i)).toList()
-          : [], // ДОДАНО
+          : [], 
     );
   }
 }

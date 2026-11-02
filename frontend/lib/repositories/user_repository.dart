@@ -17,7 +17,6 @@ class UserRepository {
   }
 
   Future<UserProfile> getProfile(int userId) async {
-    // Тепер ендпоінт приймає user_id динамічно!
     final response = await http.get(Uri.parse('$baseUrl/users/profile?user_id=$userId'));
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));

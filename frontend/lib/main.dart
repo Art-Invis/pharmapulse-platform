@@ -38,7 +38,6 @@ class PharmaPulseApp extends StatelessWidget {
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
             useMaterial3: true,
           ),
-          // Змінюємо стартову сторінку!
           home: const RoleSelectionScreen(),
         ),
       ),

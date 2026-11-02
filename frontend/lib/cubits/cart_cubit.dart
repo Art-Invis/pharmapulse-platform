@@ -11,7 +11,6 @@ class CartCubit extends Cubit<CartState> {
     final existingIndex = currentItems.indexWhere((item) => item.medicine.id == medicine.id);
 
     if (existingIndex >= 0) {
-      // СТВОРЮЄМО НОВИЙ ЕКЗЕМПЛЯР ДЛЯ ОНОВЛЕННЯ СТАНУ
       final oldItem = currentItems[existingIndex];
       currentItems[existingIndex] = CartItem(medicine: medicine, quantity: oldItem.quantity + 1);
     } else {
@@ -29,7 +28,6 @@ class CartCubit extends Cubit<CartState> {
       final oldItem = currentItems[index];
       final newQuantity = oldItem.quantity + delta;
       if (newQuantity > 0) {
-        // СТВОРЮЄМО НОВИЙ ЕКЗЕМПЛЯР ДЛЯ ОНОВЛЕННЯ СТАНУ
         currentItems[index] = CartItem(medicine: oldItem.medicine, quantity: newQuantity);
         emit(state.copyWith(items: currentItems));
       } else {

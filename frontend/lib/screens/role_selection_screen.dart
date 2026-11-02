@@ -38,7 +38,6 @@ class RoleSelectionScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              // Використовуємо Wrap для адаптивності
               Wrap(
                 spacing: 32,
                 runSpacing: 32,
@@ -59,7 +58,6 @@ class RoleSelectionScreen extends StatelessWidget {
                     icon: Icons.admin_panel_settings,
                     color: Colors.blueGrey,
                     onTap: () {
-                      // Перехід в адмінку з ініціалізацією AdminCubit
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
@@ -147,11 +145,8 @@ class RoleSelectionScreen extends StatelessWidget {
                       title: Text(user.fullName),
                       subtitle: Text('Лояльність: ${user.loyaltyTier}'),
                       onTap: () {
-                        // 1. Зберігаємо вибраного юзера глобально
                         context.read<AuthCubit>().login(user.id, user.fullName, user.loyaltyTier);
-                        // 2. Закриваємо діалогове вікно
                         Navigator.pop(dialogContext);
-                        // 3. Відкриваємо вітрину
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(builder: (context) => const CatalogScreen()),

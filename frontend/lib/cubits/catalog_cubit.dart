@@ -7,11 +7,9 @@ class CatalogCubit extends Cubit<CatalogState> {
 
   CatalogCubit({required this.repository}) : super(CatalogInitial());
 
-  // --- МЕТОД 1: ЗАВАНТАЖЕННЯ КАТАЛОГУ ---
   Future<void> loadCatalog() async {
     emit(CatalogLoading());
     try {
-      // Паралельно завантажуємо ліки та список аптек
       final medicines = await repository.getMedicines();
       final branches = await repository.getBranches();
 
@@ -19,9 +17,8 @@ class CatalogCubit extends Cubit<CatalogState> {
     } catch (e) {
       emit(CatalogError('Помилка з\'єднання з сервером: $e'));
     }
-  } // <-- Тут метод loadCatalog успішно закінчується!
+  } 
 
-  // --- МЕТОД 2: ФІЛЬТРАЦІЯ (ТЕПЕР ВІН НА СВОЄМУ МІСЦІ) ---
   void applyFilters({
     String query = '',
     bool onlyInStock = false,

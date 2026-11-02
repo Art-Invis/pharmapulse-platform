@@ -14,8 +14,8 @@ class CatalogInitial extends CatalogState {}
 class CatalogLoading extends CatalogState {}
 
 class CatalogLoaded extends CatalogState {
-  final List<Medicine> allMedicines;      // Всі ліки з бази
-  final List<Medicine> filteredMedicines; // Ліки після застосування фільтрів
+  final List<Medicine> allMedicines;      
+  final List<Medicine> filteredMedicines; 
   final List<PharmacyBranch> branches;
 
   const CatalogLoaded(this.allMedicines, this.filteredMedicines, this.branches);

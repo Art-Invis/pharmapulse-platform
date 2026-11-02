@@ -25,7 +25,6 @@ class CatalogScreen extends StatefulWidget {
 }
 
 class _CatalogScreenState extends State<CatalogScreen> {
-  // Локальний стан для візуального відображення фільтрів
   bool _onlyInStock = false;
   bool _noPrescription = false;
   String _searchQuery = '';
@@ -173,7 +172,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () {}, // Заглушка для майбутнього переходу на сторінку товару
+                          onTap: () {}, 
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(

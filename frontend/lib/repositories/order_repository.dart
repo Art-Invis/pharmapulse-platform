@@ -8,14 +8,13 @@ class OrderRepository {
   final String baseUrl = 'http://127.0.0.1:8000';
 
   Future<void> createOrder({
-    required int userId, // Для тестів беремо хардкод юзера
-    required String deliveryType, // 'Pickup' або 'Delivery'
+    required int userId, 
+    required String deliveryType, 
     PharmacyBranch? branch,
     required List<CartItem> items,
   }) async {
     final url = Uri.parse('$baseUrl/orders/');
     
-    // Формуємо JSON згідно з нашою Pydantic-схемою OrderCreate
     final Map<String, dynamic> requestBody = {
       'user_id': userId,
       'delivery_type': deliveryType,
@@ -35,13 +34,12 @@ class OrderRepository {
     if (response.statusCode != 200) {
       String errorMessage = 'Помилка сервера';
       try {
-        // Намагаємося витягнути красивий текст помилки з FastAPI (поле detail)
         final decoded = jsonDecode(utf8.decode(response.bodyBytes));
         if (decoded['detail'] != null) {
           errorMessage = decoded['detail'];
         }
       } catch (_) {}
-      throw Exception(errorMessage); // Кидаємо чисту помилку
+      throw Exception(errorMessage); 
     }
   }
 

@@ -36,7 +36,7 @@ class CabinetCubit extends Cubit<CabinetState> {
   Future<void> loadProfile(int userId) async {
     emit(CabinetLoading());
     try {
-      final profile = await repository.getProfile(userId); // Передаємо ID
+      final profile = await repository.getProfile(userId); 
       emit(CabinetLoaded(profile));
     } catch (e) {
       emit(CabinetError(e.toString()));

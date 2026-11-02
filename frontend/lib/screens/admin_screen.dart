@@ -31,7 +31,6 @@ class AdminScreen extends StatelessWidget {
               itemCount: order.items.length,
               itemBuilder: (context, index) {
                 final item = order.items[index];
-                // Шукаємо ліки в глобальному каталозі за ID
                 final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
                 final medName = med?.name ?? 'Невідомий препарат (ID: ${item.medicineId})';
 

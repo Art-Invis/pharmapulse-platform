@@ -32,6 +32,7 @@ class UserProfile {
   final String email;
   final String phone;
   final String loyaltyTier;
+  final double bonusBalance; 
   final List<Prescription> prescriptions;
   final List<Order> orders;
 
@@ -41,6 +42,7 @@ class UserProfile {
     required this.email,
     required this.phone,
     required this.loyaltyTier,
+    required this.bonusBalance, 
     required this.prescriptions,
     required this.orders,
   });
@@ -52,6 +54,7 @@ class UserProfile {
       email: json['email'],
       phone: json['phone'],
       loyaltyTier: json['loyalty_tier'],
+      bonusBalance: (json['bonus_balance'] as num?)?.toDouble() ?? 0.0, 
       prescriptions: (json['prescriptions'] as List)
           .map((p) => Prescription.fromJson(p))
           .toList(),

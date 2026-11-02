@@ -17,5 +17,5 @@ class CartState extends Equatable {
   }
 
   @override
-  List<Object> get props => [items]; // Equatable відслідковує зміни списку
+  List<Object> get props => [items]; 
 }
