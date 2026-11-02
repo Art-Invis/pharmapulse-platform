@@ -4,6 +4,7 @@ from typing import List
 from app.models.entities import Order, PharmacyBranch, Medicine 
 from app.patterns.factory import EmailNotificationFactory, SmsNotificationFactory
 from app.core.database import DatabaseConnection
+from app.models.entities import User 
 
 class IOrderObserver(ABC):
     @abstractmethod
@@ -37,16 +38,13 @@ class CustomerNotificationDispatcher(IOrderObserver):
 
 class PharmacyStockSynchronizer(IOrderObserver):
     def update(self, order: Order, event_type: str) -> None:
-        # Патерн Observer: Відслідковуємо скасування замовлення і повертаємо товар на склад
         if event_type == "order_cancelled":
             
-            # БЕЗПЕЧНЕ ОТРИМАННЯ СЕСІЇ (працює і з yield, і з return)
             session_obj = DatabaseConnection.get_instance().get_session()
             db = next(session_obj) if hasattr(session_obj, '__next__') else session_obj
             
             try:
                 for item in order.items:
-                    # Шукаємо препарат у базі та повертаємо йому кількість
                     med = db.query(Medicine).filter(Medicine.id == item.medicine_id).first()
                     if med:
                         med.stock += item.quantity
@@ -55,5 +53,23 @@ class PharmacyStockSynchronizer(IOrderObserver):
             except Exception as e:
                 db.rollback()
                 print(f"[Stock Sync Error] Помилка повернення залишків: {e}")
+            finally:
+                db.close()
+
+class BonusAccumulatorObserver(IOrderObserver):
+    def update(self, order: Order, event_type: str) -> None:
+        if event_type == "order_completed":
+            session_obj = DatabaseConnection.get_instance().get_session()
+            db = next(session_obj) if hasattr(session_obj, '__next__') else session_obj
+            try:
+                user = db.query(User).filter(User.id == order.user_id).first()
+                if user:
+                    bonus_earned = round(order.final_price * 0.05, 2)
+                    user.bonus_balance += bonus_earned
+                    db.commit()
+                    print(f"[Bonus System] Нараховано {bonus_earned} ₴ кешбеку для {user.full_name}")
+            except Exception as e:
+                db.rollback()
+                print(f"[Bonus System Error] {e}")
             finally:
                 db.close()

@@ -15,7 +15,8 @@ class UserResponse(UserBase):
     id: int
     role: str
     loyalty_tier: str
-
+    bonus_balance: float = 0.0 
+    
     class Config:
         from_attributes = True
 

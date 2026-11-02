@@ -7,12 +7,21 @@ from app.models.entities import Order, User, Medicine, PharmacyBranch, OrderItem
 from app.schemas.order import OrderCreate, OrderResponse
 from app.patterns.builder import OrderBuilder
 from app.patterns.strategy import get_loyalty_strategy
-from app.patterns.observer import OrderEventManager
+
+from app.patterns.observer import (
+    OrderEventManager, 
+    CustomerNotificationDispatcher, 
+    PharmacyStockSynchronizer, 
+    BonusAccumulatorObserver
+)
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
-# Глобальний менеджер подій для патерна Observer
 event_manager = OrderEventManager()
+
+event_manager.subscribe(CustomerNotificationDispatcher())  
+event_manager.subscribe(PharmacyStockSynchronizer())       
+event_manager.subscribe(BonusAccumulatorObserver())        
 
 @router.post("/", response_model=OrderResponse)
 def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
@@ -23,7 +32,6 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
     builder = OrderBuilder()
     builder.set_customer(user)
 
-    # Налаштування доставки
     delivery_address = getattr(order_in, 'delivery_address', None)
     if order_in.branch_id:
         branch = db.query(PharmacyBranch).filter(PharmacyBranch.id == order_in.branch_id).first()
@@ -48,7 +56,6 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
     
     if valid_prescription:
         builder.attach_prescription(valid_prescription)
-    # ------------------------------------------------------------------
 
     # Застосування патерну Strategy для знижок
     strategy = get_loyalty_strategy(user.loyalty_tier)
@@ -64,11 +71,11 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
     for item_in in order_in.items:
         med = db.query(Medicine).filter(Medicine.id == item_in.medicine_id).first()
         med.stock -= item_in.quantity
-    # ---------------------------------------------------------------------------
 
     db.commit()
     db.refresh(order)
     return order
+
 
 @router.patch("/{order_id}/status", response_model=OrderResponse)
 def update_order_status(order_id: int, new_status: str, db: Session = Depends(get_db)):
@@ -83,6 +90,7 @@ def update_order_status(order_id: int, new_status: str, db: Session = Depends(ge
     event_manager.notify_observers(order, event_type=f"order_{new_status.lower()}")
     
     return order
+
 
 @router.get("/", response_model=List[OrderResponse])
 def get_all_orders(db: Session = Depends(get_db)):

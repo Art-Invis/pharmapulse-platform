@@ -4,7 +4,6 @@ from typing import List
 from pydantic import BaseModel
 
 from app.core.database import get_db
-# ДОДАЛИ ІМПОРТ Order, щоб можна було підтягнути товари
 from app.models.entities import User, Order 
 from app.schemas.user import UserResponse, UserProfileResponse
 
@@ -24,7 +23,6 @@ def get_user_profile(user_id: int = Query(..., description="ID поточног�
     user = db.query(User)\
         .options(
             joinedload(User.prescriptions), 
-            # ТУТ МАГІЯ: підтягуємо замовлення, а до замовлень -> їхні товари (items)
             joinedload(User.orders).joinedload(Order.items) 
         )\
         .filter(User.id == user_id)\
@@ -33,7 +31,6 @@ def get_user_profile(user_id: int = Query(..., description="ID поточног�
     if not user:
         raise HTTPException(status_code=404, detail="Користувача не знайдено")
         
-    # Сортуємо замовлення від найновіших до найстаріших
     user.orders.sort(key=lambda x: x.created_at, reverse=True)
     return user
 

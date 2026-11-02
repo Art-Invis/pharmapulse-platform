@@ -2,7 +2,6 @@ import os
 import random
 from datetime import datetime, timedelta
 
-# Динамічно визначаємо абсолютний шлях до файлу pharmapulse.db
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'pharmapulse.db')
 
@@ -18,7 +17,6 @@ if os.path.exists(DB_PATH):
 else:
     print("Файлу бази даних не знайдено, переходимо до створення...")
 
-# Підключаємо залежності без префікса backend.
 from app.core.database import Base, DatabaseConnection
 from app.models.entities import User, Medicine, PharmacyBranch, Prescription, Order, OrderItem
 
@@ -26,13 +24,11 @@ print("Ініціалізація нової бази даних...")
 db_conn = DatabaseConnection.get_instance()
 engine = db_conn.engine
 
-# Створюємо чисті таблиці з нуля
 Base.metadata.create_all(bind=engine)
 db = db_conn.get_session()
 
 print("Заповнення розширеними тестовими даними...")
 
-# 1. Додаємо аптечні філії (Lviv & Kyiv)
 print("-> Створення мережі аптек...")
 branches = [
     PharmacyBranch(name="Аптека «Центральна»", address="вул. Шевченка, 10", city="Львів"),
@@ -44,7 +40,6 @@ branches = [
 db.add_all(branches)
 db.commit()
 
-# 2. Додаємо Користувачів (Клієнти та Фармацевти)
 print("-> Створення облікових записів...")
 users = [
     User(full_name="Іван Коваль", email="ivan@test.com", phone="+380991112233", role="Client", loyalty_tier="Standard"),
@@ -58,7 +53,6 @@ users = [
 db.add_all(users)
 db.commit()
 
-# 3. Додаємо розширений перелік медикаментів
 print("-> Створення каталогу медикаментів...")
 medicines = [
     # Звичайні (Без рецепта)
@@ -83,7 +77,6 @@ medicines = [
 db.add_all(medicines)
 db.commit()
 
-# 4. Додаємо цифрові медичні рецепти
 print("-> Генерація електронних рецептів...")
 prescriptions = [
     Prescription(user_id=users[0].id, code="RX-777-111", patient_full_name=users[0].full_name, doctor_full_name="Д-р Хаус", expiry_date=datetime.now() + timedelta(days=30), is_verified=True),
@@ -94,7 +87,6 @@ prescriptions = [
 db.add_all(prescriptions)
 db.commit()
 
-# 5. Додаємо Замовлення (Orders) — ТЕПЕР З ОБОВ'ЯЗКОВИМ raw_total
 print("-> Створення історії замовлень для адмінки...")
 orders = [
     Order(user_id=users[0].id, branch_id=branches[0].id, status="Pending", delivery_type="Pickup", raw_total=156.00, final_price=156.00, created_at=datetime.now() - timedelta(hours=2)),
@@ -106,7 +98,6 @@ orders = [
 db.add_all(orders)
 db.commit()
 
-# 6. Наповнюємо замовлення конкретними товарами (OrderItem) — ТЕПЕР З ОБОВ'ЯЗКОВИМ price_per_unit
 print("-> Прив'язка товарів до замовлень...")
 order_items = [
     # Позиції для замовлення 1 (2x Аспірин, 1x Корвалмент)

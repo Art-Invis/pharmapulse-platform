@@ -12,4 +12,4 @@ class MedicineResponse(MedicineBase):
     id: int
 
     class Config:
-        from_attributes = True  # Дозволяє автоматичний парсинг з об'єктів SQLAlchemy
+        from_attributes = True  

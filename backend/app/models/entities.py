@@ -12,6 +12,7 @@ class User(Base):
     phone = Column(String)
     role = Column(String, default="Client")
     loyalty_tier = Column(String, default="Standard")
+    bonus_balance = Column(Float, default=0.0)
 
     # Зв'язки
     prescriptions = relationship("Prescription", back_populates="user")

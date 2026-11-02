@@ -40,7 +40,7 @@ class OrderBuilder(IOrderBuilder):
         self._order = Order()
         self._items: List[OrderItem] = []
         self._medicines_cache: List[Medicine] = []
-        self._has_valid_prescription = False # Додано прапорець для перевірки рецепта
+        self._has_valid_prescription = False 
 
     def set_customer(self, user: User) -> "IOrderBuilder":
         self._order.user_id = user.id
@@ -51,7 +51,7 @@ class OrderBuilder(IOrderBuilder):
         item = OrderItem(
             medicine_id=medicine.id,
             quantity=qty,
-            price_per_unit=medicine.price # ВИПРАВЛЕНО: price_per_unit замість unit_price
+            price_per_unit=medicine.price 
         )
         self._items.append(item)
         self._medicines_cache.append(medicine)
@@ -59,14 +59,13 @@ class OrderBuilder(IOrderBuilder):
 
     def set_delivery(self, delivery_type: str, address: Optional[str] = None, branch: Optional[PharmacyBranch] = None) -> "IOrderBuilder":
         self._order.delivery_type = delivery_type
-        # Видалили delivery_address, бо його немає в БД
         if branch:
             self._order.branch_id = branch.id
             self._order.branch = branch
         return self
 
     def attach_prescription(self, p: Prescription) -> "IOrderBuilder":
-        if p.is_verified: # ВИПРАВЛЕНО: використовуємо поле з нашої БД
+        if p.is_verified: 
             self._has_valid_prescription = True
         return self
 
@@ -75,7 +74,7 @@ class OrderBuilder(IOrderBuilder):
         total_discount = 0.0
 
         for item, med in zip(self._items, self._medicines_cache):
-            item_raw = item.price_per_unit * item.quantity # ВИПРАВЛЕНО: price_per_unit
+            item_raw = item.price_per_unit * item.quantity 
             raw_total += item_raw
             total_discount += strategy.calculate_discount(item_raw, med.is_prescription_required)
 
@@ -87,7 +86,6 @@ class OrderBuilder(IOrderBuilder):
         return self
 
     def get_result(self) -> Order:
-        # Перевірка наявності рецепта, якщо є хоча б один рецептурний препарат
         has_prescription_items = any(m.is_prescription_required for m in self._medicines_cache)
         if has_prescription_items and not self._has_valid_prescription:
             raise ValueError("Для замовлення рецептурних медикаментів обов'язково потрібен підтверджений рецепт!")

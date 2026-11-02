@@ -7,10 +7,9 @@ from app.patterns.observer import CustomerNotificationDispatcher, PharmacyStockS
 from app.api import orders, catalog, users
 app = FastAPI(title="PharmaPulse API")
 
-# Налаштування CORS для локальної розробки (щоб Flutter Web міг робити запити)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # У продакшені тут має бути URL фронтенду
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
