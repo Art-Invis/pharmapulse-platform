@@ -28,9 +28,11 @@ class CatalogCubit extends Cubit<CatalogState> {
       final currentState = state as CatalogLoaded;
 
       final filtered = currentState.allMedicines.where((med) {
-        final matchesQuery = med.name.toLowerCase().contains(
-          query.toLowerCase(),
-        );
+        final searchQuery = query.toLowerCase();
+        
+        final matchesQuery = med.name.toLowerCase().contains(searchQuery) ||
+                             med.manufacturer.toLowerCase().contains(searchQuery);
+                             
         final matchesStock = onlyInStock ? med.stock > 0 : true;
         final matchesPrescription = noPrescription
             ? !med.isPrescriptionRequired
