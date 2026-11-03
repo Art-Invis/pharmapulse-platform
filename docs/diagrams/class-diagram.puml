@@ -1,0 +1,277 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+' =========================================================
+' КОЛЬОРИ GOF-ПАТЕРНІВ (ДОДАТОК В МЕТОДИЧКИ)
+' =========================================================
+!define SINGLETON_COLOR #FADBD8
+!define BUILDER_COLOR #FDEBD0
+!define STRATEGY_COLOR #D6EAF8
+!define OBSERVER_COLOR #D5F5E3
+!define FACTORY_COLOR #E8CFC4
+
+' =========================================================
+' ЛЕГЕНДА
+' =========================================================
+legend top left
+  <b>GoF-патерни проектирования:</b>
+  <back:SINGLETON_COLOR>   </back> Singleton — доступ до БД
+  <back:BUILDER_COLOR>   </back> Builder — конструювання замовлення
+  <back:STRATEGY_COLOR>   </back> Strategy — розрахунок знижок
+  <back:OBSERVER_COLOR>   </back> Observer — події замовлення та сповіщення
+  <back:FACTORY_COLOR>   </back> Factory Method — канали сповіщень
+endlegend
+
+' =========================================================
+' CORE & INFRASTRUCTURE
+' =========================================================
+package "Core & Infrastructure" {
+    class DatabaseConnection <<Singleton>> SINGLETON_COLOR {
+        - instance: DatabaseConnection
+        - connectionString: String
+        - isConnected: Boolean
+        - DatabaseConnection()
+        + getInstance(): DatabaseConnection
+        + executeQuery(query: String): List
+    }
+}
+
+' =========================================================
+' DOMAIN MODELS
+' =========================================================
+package "Domain Models" {
+    class User {
+        - id: Integer
+        - fullName: String
+        - email: String
+        - phone: String
+        - role: String
+        + getDetails(): String
+    }
+
+    class Medicine {
+        - id: Integer
+        - name: String
+        - activeSubstance: String
+        - price: Decimal
+        - isPrescriptionRequired: Boolean
+        - manufacturer: String
+    }
+
+    class PharmacyBranch {
+        - id: Integer
+        - address: String
+        - phone: String
+        + getStock(medicineId: Integer): Integer
+        + updateStock(medicineId: Integer, qty: Integer): Boolean
+    }
+
+    class Prescription {
+        - id: Integer
+        - code: String
+        - patientFullName: String
+        - doctorFullName: String
+        - expiryDate: Date
+        - isVerified: Boolean
+        + validate(): Boolean
+    }
+
+    class OrderItem {
+        - quantity: Integer
+        - unitPrice: Decimal
+        + calculateSubtotal(): Decimal
+    }
+
+    class Order {
+        - id: Integer
+        - items: List<OrderItem>
+        - deliveryType: String
+        - deliveryAddress: String
+        - rawTotal: Decimal
+        - finalPrice: Decimal
+        - status: String
+        + setStatus(newStatus: String)
+        + calculateTotal(): Decimal
+    }
+}
+
+' =========================================================
+' ORDER CONSTRUCTION — BUILDER
+' =========================================================
+package "Order Construction (Builder)" {
+    interface IOrderBuilder BUILDER_COLOR {
+        + reset(): void
+        + setCustomer(user: User): IOrderBuilder
+        + addItem(medicine: Medicine, qty: Integer): IOrderBuilder
+        + setDelivery(type: String, address: String, branch: PharmacyBranch): IOrderBuilder
+        + attachPrescription(p: Prescription): IOrderBuilder
+        + applyPricing(strategy: ILoyaltyStrategy): IOrderBuilder
+        + getResult(): Order
+    }
+
+    class OrderBuilder BUILDER_COLOR {
+        - order: Order
+        + reset(): void
+        + setCustomer(user: User): IOrderBuilder
+        + addItem(medicine: Medicine, qty: Integer): IOrderBuilder
+        + setDelivery(type: String, address: String, branch: PharmacyBranch): IOrderBuilder
+        + attachPrescription(p: Prescription): IOrderBuilder
+        + applyPricing(strategy: ILoyaltyStrategy): IOrderBuilder
+        + getResult(): Order
+    }
+}
+
+' =========================================================
+' LOYALTY SYSTEM — STRATEGY
+' =========================================================
+package "Loyalty System (Strategy)" {
+    interface ILoyaltyStrategy STRATEGY_COLOR {
+        + calculateDiscount(basePrice: Decimal, isPrescription: Boolean): Decimal
+        + isDeliveryFree(): Boolean
+    }
+
+    class StandardLoyalty STRATEGY_COLOR {
+        + calculateDiscount(basePrice: Decimal, isPrescription: Boolean): Decimal
+        + isDeliveryFree(): Boolean
+    }
+
+    class SocialLoyalty STRATEGY_COLOR {
+        - socialDiscountRate: Decimal = 0.15
+        + calculateDiscount(basePrice: Decimal, isPrescription: Boolean): Decimal
+        + isDeliveryFree(): Boolean
+    }
+
+    class PremiumLoyalty STRATEGY_COLOR {
+        - premiumDiscountRate: Decimal = 0.10
+        + calculateDiscount(basePrice: Decimal, isPrescription: Boolean): Decimal
+        + isDeliveryFree(): Boolean
+    }
+}
+
+' =========================================================
+' EVENT NOTIFICATION — OBSERVER
+' =========================================================
+package "Event Notification (Observer)" {
+    interface IOrderObserver OBSERVER_COLOR {
+        + update(order: Order, eventType: String): void
+    }
+
+    class OrderEventManager OBSERVER_COLOR {
+        - observers: List<IOrderObserver>
+        + subscribe(observer: IOrderObserver): void
+        + unsubscribe(observer: IOrderObserver): void
+        + notifyObservers(order: Order, eventType: String): void
+    }
+
+    class CustomerNotificationDispatcher OBSERVER_COLOR {
+        - factory: NotificationFactory
+        + update(order: Order, eventType: String): void
+    }
+
+    class PharmacyStockSynchronizer OBSERVER_COLOR {
+        + update(order: Order, eventType: String): void
+    }
+}
+
+' =========================================================
+' MESSAGING GATEWAY — FACTORY METHOD
+' =========================================================
+package "Messaging Gateway (Factory Method)" {
+    interface INotifier FACTORY_COLOR {
+        + send(recipient: String, message: String): Boolean
+    }
+
+    class EmailNotifier FACTORY_COLOR {
+        + send(recipient: String, message: String): Boolean
+    }
+
+    class SmsNotifier FACTORY_COLOR {
+        + send(recipient: String, message: String): Boolean
+    }
+
+    abstract class NotificationFactory FACTORY_COLOR {
+        + {abstract} createNotifier(): INotifier
+        + dispatch(recipient: String, msg: String): Boolean
+    }
+
+    class EmailNotificationFactory FACTORY_COLOR {
+        + createNotifier(): INotifier
+    }
+
+    class SmsNotificationFactory FACTORY_COLOR {
+        + createNotifier(): INotifier
+    }
+}
+
+' =========================================================
+' DOMAIN RELATIONSHIPS
+' =========================================================
+User "1" -- "0..*" Prescription : owns
+User "1" -- "0..*" Order : places
+
+Order "1" *-- "1..*" OrderItem
+OrderItem "*" --> "1" Medicine : contains
+Order "1" o-- "0..1" Prescription : attaches
+Order "*" --> "0..1" PharmacyBranch : pickupAt
+
+' Правка 2: Many-to-Many між аптечними точками та асортиментом ліків
+PharmacyBranch "*" -- "*" Medicine : stocks
+
+' =========================================================
+' INFRASTRUCTURE & SINGLETON RELATIONSHIPS
+' =========================================================
+OrderBuilder ..> DatabaseConnection : uses
+PharmacyStockSynchronizer ..> DatabaseConnection : uses
+
+' =========================================================
+' BUILDER RELATIONSHIPS
+' =========================================================
+IOrderBuilder <|.. OrderBuilder
+
+OrderBuilder ..> Order : creates
+OrderBuilder ..> Medicine : adds
+OrderBuilder ..> Prescription : attaches
+OrderBuilder ..> PharmacyBranch : selects
+OrderBuilder ..> ILoyaltyStrategy : uses
+
+' =========================================================
+' STRATEGY RELATIONSHIPS
+' =========================================================
+ILoyaltyStrategy <|.. StandardLoyalty
+ILoyaltyStrategy <|.. SocialLoyalty
+ILoyaltyStrategy <|.. PremiumLoyalty
+
+User --> ILoyaltyStrategy : uses
+
+' =========================================================
+' OBSERVER RELATIONSHIPS
+' =========================================================
+OrderEventManager o-- "0..*" IOrderObserver : observers
+
+IOrderObserver <|.. CustomerNotificationDispatcher
+IOrderObserver <|.. PharmacyStockSynchronizer
+
+' Правка 1: Зміна підпису зв'язку на notifies
+Order ..> OrderEventManager : notifies
+PharmacyStockSynchronizer --> PharmacyBranch : updates stock
+
+' =========================================================
+' FACTORY METHOD RELATIONSHIPS
+' =========================================================
+INotifier <|.. EmailNotifier
+INotifier <|.. SmsNotifier
+
+NotificationFactory <|-- EmailNotificationFactory
+NotificationFactory <|-- SmsNotificationFactory
+
+NotificationFactory ..> INotifier : creates
+EmailNotificationFactory ..> EmailNotifier : creates
+SmsNotificationFactory ..> SmsNotifier : creates
+
+CustomerNotificationDispatcher --> NotificationFactory : uses
+
+@enduml
