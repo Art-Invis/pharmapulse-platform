@@ -65,7 +65,7 @@ class OrderBuilder(IOrderBuilder):
         return self
 
     def attach_prescription(self, p: Prescription) -> "IOrderBuilder":
-        if p.is_verified: 
+        if p.validate(): 
             self._has_valid_prescription = True
         return self
 

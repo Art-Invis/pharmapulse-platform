@@ -32,6 +32,9 @@ class Prescription(Base):
     # Зв'язок
     user = relationship("User", back_populates="prescriptions")
 
+    def validate(self) -> bool:
+        return self.is_verified and self.expiry_date >= datetime.utcnow()
+
 class Medicine(Base):
     __tablename__ = "medicines"
     
@@ -65,6 +68,9 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     medicine = relationship("Medicine")
 
+    def calculate_subtotal(self) -> float:
+        return self.quantity * self.price_per_unit
+    
 class Order(Base):
     __tablename__ = "orders"
     
@@ -81,3 +87,6 @@ class Order(Base):
     user = relationship("User", back_populates="orders")
     branch = relationship("PharmacyBranch")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+    def calculate_total(self) -> float:
+        return sum(item.calculate_subtotal() for item in self.items)
