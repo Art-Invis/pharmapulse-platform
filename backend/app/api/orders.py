@@ -7,6 +7,7 @@ from app.models.entities import Order, User, Medicine, PharmacyBranch, OrderItem
 from app.schemas.order import OrderCreate, OrderResponse
 from app.patterns.builder import OrderBuilder
 from app.patterns.strategy import get_loyalty_strategy
+from app.patterns.state import OrderStateContext
 
 from app.patterns.observer import (
     OrderEventManager,
@@ -87,14 +88,19 @@ def update_order_status(order_id: int, new_status: str, db: Session = Depends(ge
     if not order:
         raise HTTPException(status_code=404, detail="Замовлення не знайдено")
 
-    order.status = new_status
+    # Валідація та виконання переходу через патерн State
+    try:
+        state_context = OrderStateContext(order)
+        state_context.change_status(new_status)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     db.commit()
     db.refresh(order)
 
     event_manager.notify_observers(order, event_type=f"order_{new_status.lower()}")
 
     return order
-
 
 @router.get("/", response_model=List[OrderResponse])
 def get_all_orders(db: Session = Depends(get_db)):

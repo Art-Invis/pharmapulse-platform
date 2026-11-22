@@ -58,7 +58,7 @@ class CabinetScreen extends StatelessWidget {
                         _buildProfileTab(context, profile),
                         _buildOrdersTab(context, profile.orders),
                         _buildPrescriptionsTab(profile.prescriptions),
-                        _buildNotificationsTab(),
+                        _buildNotificationsTab(context, profile.orders),
                       ],
                     ),
                   ),
@@ -330,22 +330,33 @@ class CabinetScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNotificationsTab() {
-    final systemReminders = [
-      {
-        'title': 'Препарат знову в наявності',
-        'body':
-            'Ліки "Німесил", які ви шукали, щойно надійшли в найближчу аптеку.',
-        'icon': Icons.medical_information,
-        'color': Colors.teal,
-      },
-      {
-        'title': 'Нагадування',
-        'body': 'У вас закінчується "Корвалмент". Бажаєте повторити замовлення?',
-        'icon': Icons.alarm,
-        'color': Colors.blue,
-      },
-    ];
+  Widget _buildNotificationsTab(BuildContext context, List<Order> orders) {
+    // Аналізуємо історію замовлень для пошуку регулярного препарату
+    final Map<int, int> medFrequency = {};
+    for (final order in orders) {
+      if (order.status == 'Cancelled') continue;
+      for (final item in order.items) {
+        medFrequency[item.medicineId] =
+            (medFrequency[item.medicineId] ?? 0) + 1;
+      }
+    }
+
+    Medicine? regularMed;
+    int maxOrderCount = 0;
+
+    if (medFrequency.isNotEmpty) {
+      final topEntry = medFrequency.entries.reduce(
+        (a, b) => a.value >= b.value ? a : b,
+      );
+      maxOrderCount = topEntry.value;
+
+      final catalogState = context.read<CatalogCubit>().state;
+      if (catalogState is CatalogLoaded) {
+        regularMed = catalogState.allMedicines
+            .where((m) => m.id == topEntry.key)
+            .firstOrNull;
+      }
+    }
 
     return FutureBuilder<List<Promotion>>(
       future: CatalogRepository().getPromotions(),
@@ -360,7 +371,8 @@ class CabinetScreen extends StatelessWidget {
                 padding: EdgeInsets.only(bottom: 12),
                 child: LinearProgressIndicator(),
               ),
-            // Реальні акції з сервера
+
+            // 1. Реальні акції та сезонні знижки з БД
             ...promos.map(
               (promo) => Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -370,30 +382,84 @@ class CabinetScreen extends StatelessWidget {
                     child: const Icon(Icons.percent, color: Colors.orange),
                   ),
                   title: Text(
-                    promo.title,
+                    promo.discountPercent > 0
+                        ? '${promo.title} (-${promo.discountPercent.toStringAsFixed(0)}%)'
+                        : promo.title,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(promo.description),
                 ),
               ),
             ),
-            // Системні нагадування
-            ...systemReminders.map(
-              (note) => Card(
+
+            // 2. Нагадування про регулярні препарати (на основі історії покупок)
+            if (regularMed != null)
+              Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: (note['color'] as Color).withOpacity(0.2),
-                    child: Icon(
-                      note['icon'] as IconData,
-                      color: note['color'] as Color,
-                    ),
+                    backgroundColor: Colors.blue.withOpacity(0.2),
+                    child: const Icon(Icons.alarm, color: Colors.blue),
                   ),
-                  title: Text(
-                    note['title'] as String,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  title: const Text(
+                    'Нагадування про регулярний прийом',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text(note['body'] as String),
+                  subtitle: Text(
+                    'Ви регулярно замовляєте «${regularMed.name}» (замовлень: $maxOrderCount). Не забудьте поповнити запас!',
+                  ),
+                  trailing: regularMed.stock > 0
+                      ? FilledButton.tonal(
+                          onPressed: () {
+                            context.read<CartCubit>().addMedicine(regularMed!);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${regularMed.name} додано в кошик',
+                                ),
+                              ),
+                            );
+                          },
+                          child: const Text('У кошик'),
+                        )
+                      : null,
+                ),
+              )
+            else
+              Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blue.withOpacity(0.2),
+                    child: const Icon(Icons.alarm, color: Colors.blue),
+                  ),
+                  title: const Text(
+                    'Нагадування',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    'Оформіть перше замовлення, і ми автоматично нагадуватимемо про регулярні препарати.',
+                  ),
+                ),
+              ),
+
+            // 3. Наявність у найближчій аптеці (демонстраційне сповіщення)
+            Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Colors.teal.withOpacity(0.2),
+                  child: const Icon(
+                    Icons.medical_information,
+                    color: Colors.teal,
+                  ),
+                ),
+                title: const Text(
+                  'Препарат знову в наявності',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                subtitle: const Text(
+                  'Ліки "Німесил", які ви шукали, щойно надійшли в найближчу аптеку.',
                 ),
               ),
             ),
