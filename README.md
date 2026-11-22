@@ -111,13 +111,13 @@ Interactive API documentation is available via Swagger UI at `http://127.0.0.1:8
 ## Architecture Diagrams
 
 ### Use Case Diagram
-![Use Case Diagram](docs/use-case.png)
+![Use Case Diagram](docs/diagrams/use_case.png)
 
 ### Entity-Relationship (ER) Diagram
-![ER Diagram](docs/er-diagram.png)
+![ER Diagram](docs/diagrams/ER-diagram.png)
 
 ### UML Class Diagram (GoF Design Patterns)
-![Class Diagram](docs/class-diagram.png)
+![Class Diagram](docs/diagrams/class-diagram.png)
 
 ---
 
