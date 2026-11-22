@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload 
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 
 from app.core.database import get_db
-from app.models.entities import Order, User, Medicine, PharmacyBranch, OrderItem, Prescription 
+from app.models.entities import Order, User, Medicine, PharmacyBranch, OrderItem, Prescription, Promotion
 from app.schemas.order import OrderCreate, OrderResponse
 from app.patterns.builder import OrderBuilder
 from app.patterns.strategy import get_loyalty_strategy
 
 from app.patterns.observer import (
-    OrderEventManager, 
-    CustomerNotificationDispatcher, 
-    PharmacyStockSynchronizer, 
+    OrderEventManager,
+    CustomerNotificationDispatcher,
+    PharmacyStockSynchronizer,
     BonusAccumulatorObserver
 )
 
@@ -19,9 +19,9 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 event_manager = OrderEventManager()
 
-event_manager.subscribe(CustomerNotificationDispatcher())  
-event_manager.subscribe(PharmacyStockSynchronizer())       
-event_manager.subscribe(BonusAccumulatorObserver())        
+event_manager.subscribe(CustomerNotificationDispatcher())
+event_manager.subscribe(PharmacyStockSynchronizer())
+event_manager.subscribe(BonusAccumulatorObserver())
 
 @router.post("/", response_model=OrderResponse)
 def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
@@ -43,26 +43,30 @@ def create_order(order_in: OrderCreate, db: Session = Depends(get_db)):
         med = db.query(Medicine).filter(Medicine.id == item_in.medicine_id).first()
         if not med:
             raise HTTPException(status_code=404, detail=f"Препарат #{item_in.medicine_id} не знайдено")
-        
+
         if med.stock < item_in.quantity:
             raise HTTPException(status_code=400, detail=f"Недостатньо на складі: {med.name} (Залишок: {med.stock})")
-            
+
         builder.add_item(med, item_in.quantity)
 
     valid_prescription = db.query(Prescription).filter(
         Prescription.user_id == user.id,
         Prescription.is_verified == True
     ).first()
-    
+
     if valid_prescription:
         builder.attach_prescription(valid_prescription)
 
-    # Застосування патерну Strategy для знижок
+    # Застосування патерну Strategy для знижок лояльності
     strategy = get_loyalty_strategy(user.loyalty_tier)
     builder.apply_pricing(strategy)
-    
+
+    # Застосування останньої активної сезонної акції (якщо є)
+    latest_promo = db.query(Promotion).order_by(Promotion.created_at.desc()).first()
+    builder.apply_promotion(latest_promo)
+
     try:
-        order = builder.get_result() 
+        order = builder.get_result()
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -88,7 +92,7 @@ def update_order_status(order_id: int, new_status: str, db: Session = Depends(ge
     db.refresh(order)
 
     event_manager.notify_observers(order, event_type=f"order_{new_status.lower()}")
-    
+
     return order
 
 

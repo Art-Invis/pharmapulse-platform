@@ -44,7 +44,9 @@ class AdminScreen extends StatelessWidget {
                     medName,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text('${item.pricePerUnit} ₴ x ${item.quantity} шт.'),
+                  subtitle: Text(
+                    '${item.pricePerUnit} ₴ x ${item.quantity} шт.',
+                  ),
                   trailing: Text(
                     '${(item.pricePerUnit * item.quantity).toStringAsFixed(2)} ₴',
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -59,6 +61,126 @@ class AdminScreen extends StatelessWidget {
               child: const Text('Закрити'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showAddPromotionDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final descController = TextEditingController();
+    final discountController = TextEditingController(text: '15');
+    int? selectedMedicineId;
+
+    final catalogState = context.read<CatalogCubit>().state;
+    final List<Medicine> allMedicines =
+        catalogState is CatalogLoaded ? catalogState.allMedicines : [];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (stateContext, setState) {
+            return AlertDialog(
+              title: const Text('Нова акція / знижка'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Заголовок (напр. Сезонна акція!)',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Опис акції',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: discountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Знижка (%)',
+                        hintText: 'Від 0 до 90',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int?>(
+                      value: selectedMedicineId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'На який товар діє',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('На всі товари в кошику'),
+                        ),
+                        ...allMedicines.map(
+                          (med) => DropdownMenuItem<int?>(
+                            value: med.id,
+                            child: Text(
+                              med.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        setState(() => selectedMedicineId = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Скасувати'),
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    if (titleController.text.trim().isEmpty ||
+                        descController.text.trim().isEmpty) {
+                      return;
+                    }
+
+                    final discount =
+                        double.tryParse(discountController.text) ?? 0.0;
+
+                    try {
+                      await CatalogRepository().createPromotion(
+                        title: titleController.text.trim(),
+                        description: descController.text.trim(),
+                        discountPercent: discount.clamp(0.0, 90.0),
+                        medicineId: selectedMedicineId,
+                      );
+                      if (context.mounted) {
+                        Navigator.pop(dialogContext);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Акцію опубліковано!')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
+                      }
+                    }
+                  },
+                  child: const Text('Опублікувати'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -97,16 +219,12 @@ class AdminScreen extends StatelessWidget {
                     ),
                     TextField(
                       controller: manufacturerController,
-                      decoration: const InputDecoration(
-                        labelText: 'Виробник',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Виробник'),
                     ),
                     TextField(
                       controller: priceController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Ціна (₴)',
-                      ),
+                      decoration: const InputDecoration(labelText: 'Ціна (₴)'),
                     ),
                     TextField(
                       controller: stockController,
@@ -154,15 +272,17 @@ class AdminScreen extends StatelessWidget {
                         Navigator.pop(dialogContext);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Препарат успішно додано до каталогу!'),
+                            content: Text(
+                              'Препарат успішно додано до каталогу!',
+                            ),
                           ),
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Помилка: $e')),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Помилка: $e')));
                       }
                     }
                   },
@@ -195,6 +315,14 @@ class AdminScreen extends StatelessWidget {
         title: const Text('Панель Фармацевта'),
         backgroundColor: Colors.blueGrey.shade800,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.campaign),
+            tooltip: 'Створити акцію',
+            onPressed: () => _showAddPromotionDialog(context),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddMedicineDialog(context),
@@ -227,8 +355,9 @@ class AdminScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final order = orders[index];
                 final date = DateTime.parse(order.createdAt).toLocal();
-                final formattedDate =
-                    DateFormat('dd.MM.yyyy HH:mm').format(date);
+                final formattedDate = DateFormat(
+                  'dd.MM.yyyy HH:mm',
+                ).format(date);
 
                 return Card(
                   elevation: 2,
@@ -294,9 +423,10 @@ class AdminScreen extends StatelessWidget {
                             onChanged: (newStatus) {
                               if (newStatus != null &&
                                   newStatus != order.status) {
-                                context
-                                    .read<AdminCubit>()
-                                    .changeOrderStatus(order.id, newStatus);
+                                context.read<AdminCubit>().changeOrderStatus(
+                                  order.id,
+                                  newStatus,
+                                );
                               }
                             },
                           ),

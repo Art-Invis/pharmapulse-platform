@@ -1,6 +1,6 @@
 # PharmaPulse — Digital Pharmacy & Healthcare Commerce Platform
 
-**PharmaPulse** is a full-stack digital pharmacy management and ordering platform built with a **FastAPI** backend and a **Flutter** cross-platform frontend. The system bridges pharmaceutical inventory, digital prescription verification, multi-tier customer loyalty, and order fulfillment workflows.
+**PharmaPulse** is a full-stack digital pharmacy management and ordering platform built with a **FastAPI** backend and a **Flutter** cross-platform frontend. The system bridges pharmaceutical inventory, digital prescription verification, multi-tier customer loyalty, seasonal promotions, and order fulfillment workflows.
 
 Designed and developed with a strong emphasis on **GoF Design Patterns**, **SOLID / GRASP** principles, and clean **RESTful** architecture.
 
@@ -10,16 +10,17 @@ Designed and developed with a strong emphasis on **GoF Design Patterns**, **SOLI
 
 ### Client Portal
 * **Medicine Catalog & Filtering:** Browse medicines, vitamins, and healthcare products with instant search by name or manufacturer, filtering by stock availability and prescription requirements, and sorting by price (ascending/descending).
-* **Shopping Cart & Checkout:** Manage item quantities, choose between courier delivery or pharmacy branch pickup, and preview real-time loyalty discounts before placing an order.
+* **Shopping Cart & Checkout:** Manage item quantities, choose between courier delivery or pharmacy branch pickup, and preview real-time loyalty discounts, active seasonal promotions, and delivery fees before placing an order.
 * **Personal Cabinet:**
   * **Profile & Virtual Loyalty Card:** View loyalty tier (`Standard`, `Social`, `Premium`) and accumulated cashback balance.
   * **Order History:** Inspect past orders, cancel pending orders, or reorder in one click via the **Repeat Order** action.
   * **Saved Prescriptions:** Track digital prescriptions, issuing doctors, expiry dates, and verification statuses.
-  * **Notifications Center:** View alerts for stock restocks, recurring medication reminders, and seasonal promotions.
+  * **Notifications Center:** View live promotional campaigns from the database alongside restock alerts and recurring medication reminders.
 
 ### Pharmacist / Admin Dashboard
 * **Order Processing:** View incoming orders and update statuses (`Pending`, `Processing`, `Ready`, `Completed`, `Cancelled`), automatically triggering stock synchronization, cashback calculation, and customer notifications.
 * **Catalog Management:** Add new medicines directly to the catalog with pricing, stock levels, active substance, and prescription flags.
+* **Promotions Management:** Publish seasonal discounts (applied either to a specific medicine or the entire cart) that immediately sync with the client notifications tab and checkout pricing.
 
 ---
 
@@ -29,7 +30,7 @@ The backend follows a modular architecture where business logic is decoupled fro
 
 | Pattern | Module | Purpose |
 | :--- | :--- | :--- |
-| **Builder** | `backend/app/patterns/builder.py` | Step-by-step construction of `Order` objects, validating prescription requirements and applying pricing before persistence. |
+| **Builder** | `backend/app/patterns/builder.py` | Step-by-step construction of `Order` objects, validating prescription requirements, applying loyalty pricing, and calculating promotional discounts before persistence. |
 | **Strategy** | `backend/app/patterns/strategy.py` | Pluggable loyalty discount and delivery fee algorithms (`StandardLoyalty`, `SocialLoyalty`, `PremiumLoyalty`) adhering to the Open/Closed Principle. |
 | **Observer** | `backend/app/patterns/observer.py` | Event-driven reaction to order status changes (`PharmacyStockSynchronizer`, `BonusAccumulatorObserver`, `CustomerNotificationDispatcher`). |
 | **Factory Method** | `backend/app/patterns/factory.py` | Decoupled instantiation of notification channels (`EmailNotificationFactory`, `SmsNotificationFactory`) via a shared `INotifier` interface. |
@@ -52,12 +53,11 @@ On the client side, **Flutter** uses the **BLoC / Cubit** pattern (`AuthCubit`, 
 
 ```text
 pharmapulse-platform/
-├── docs/
-│   └── diagrams/                 # PlantUML sources & exported UML/ER diagrams
+├── docs/                         # PlantUML sources & exported UML/ER diagrams
 ├── backend/
 │   ├── app/
 │   │   ├── api/                  # REST API routers
-│   │   │   ├── catalog.py        # Medicines & pharmacy branches endpoints
+│   │   │   ├── catalog.py        # Medicines, branches & promotions endpoints
 │   │   │   ├── orders.py         # Order creation & status management
 │   │   │   └── users.py          # User profiles, prescriptions & loyalty data
 │   │   ├── core/
@@ -74,6 +74,7 @@ pharmapulse-platform/
 │   │   │   ├── medicine.py
 │   │   │   ├── order.py
 │   │   │   ├── pharmacy.py
+│   │   │   ├── promotion.py
 │   │   │   └── user.py
 │   │   └── main.py               # FastAPI entry point & observer registration
 │   ├── requirements.txt
@@ -81,7 +82,7 @@ pharmapulse-platform/
 └── frontend/
     └── lib/
         ├── cubits/               # State management (Auth, Catalog, Cart, Cabinet, Admin)
-        ├── models/               # Dart data models
+        ├── models/               # Dart data models (including Promotion)
         ├── repositories/         # REST API clients (User, Catalog, Order)
         ├── screens/              # UI screens (Role Selection, Catalog, Cart, Cabinet, Admin)
         └── main.dart             # Flutter application entry point
@@ -96,12 +97,27 @@ pharmapulse-platform/
 | `GET` | `/catalog/medicines` | Retrieve all medicines in the catalog |
 | `POST` | `/catalog/medicines` | Add a new medicine to the catalog |
 | `GET` | `/catalog/branches` | Retrieve available pharmacy pickup branches |
-| `POST` | `/orders/` | Create a new order (invokes `OrderBuilder` & `ILoyaltyStrategy`) |
+| `GET` | `/catalog/promotions` | Retrieve active promotions and seasonal discounts |
+| `POST` | `/catalog/promotions` | Publish a new promotion (admin/pharmacist) |
+| `POST` | `/orders/` | Create a new order (invokes `OrderBuilder`, `ILoyaltyStrategy` & promotions) |
 | `GET` | `/orders/` | List orders for admin/history views |
 | `PATCH` | `/orders/{order_id}/status` | Update order status (triggers `OrderEventManager` observers) |
 | `GET` | `/users/{user_id}` | Fetch user profile, loyalty tier, bonuses, and prescriptions |
 
 Interactive API documentation is available via Swagger UI at `http://127.0.0.1:8000/docs` once the server is running.
+
+---
+
+## Architecture Diagrams
+
+### Use Case Diagram
+![Use Case Diagram](docs/use-case.png)
+
+### Entity-Relationship (ER) Diagram
+![ER Diagram](docs/er-diagram.png)
+
+### UML Class Diagram (GoF Design Patterns)
+![Class Diagram](docs/class-diagram.png)
 
 ---
 
@@ -150,9 +166,3 @@ flutter pub get
 # Launch the web application in Chrome
 flutter run -d chrome
 ```
-
----
-
-## Architecture Diagrams
-
-System design diagrams (Use Case, ER Diagram, and UML Class Diagram highlighting all five GoF patterns) are located in the `docs/diagrams/` directory.

@@ -90,3 +90,13 @@ class Order(Base):
 
     def calculate_total(self) -> float:
         return sum(item.calculate_subtotal() for item in self.items)
+
+class Promotion(Base):
+    __tablename__ = "promotions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    discount_percent = Column(Float, default=0.0)  # наприклад, 10.0 для 10%
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)  # null = на все
+    created_at = Column(DateTime, default=datetime.utcnow)

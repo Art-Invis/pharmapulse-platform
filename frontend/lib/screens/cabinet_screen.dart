@@ -8,9 +8,11 @@ import '../cubits/cart_cubit.dart';
 import '../cubits/catalog_cubit.dart';
 import '../cubits/catalog_state.dart';
 import '../repositories/order_repository.dart';
+import '../repositories/catalog_repository.dart';
 import '../models/order.dart';
 import '../models/user_profile.dart';
 import '../models/medicine.dart';
+import '../models/promotion.dart';
 import 'cart_screen.dart';
 
 class CabinetScreen extends StatelessWidget {
@@ -28,12 +30,17 @@ class CabinetScreen extends StatelessWidget {
           if (state is CabinetLoading) {
             return const Center(child: CircularProgressIndicator());
           } else if (state is CabinetError) {
-            return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
+            return Center(
+              child: Text(
+                state.message,
+                style: const TextStyle(color: Colors.red),
+              ),
+            );
           } else if (state is CabinetLoaded) {
             final profile = state.profile;
 
             return DefaultTabController(
-              length: 4, 
+              length: 4,
               child: Column(
                 children: [
                   const TabBar(
@@ -42,7 +49,7 @@ class CabinetScreen extends StatelessWidget {
                       Tab(icon: Icon(Icons.person), text: 'Профіль'),
                       Tab(icon: Icon(Icons.history), text: 'Історія'),
                       Tab(icon: Icon(Icons.receipt_long), text: 'Рецепти'),
-                      Tab(icon: Icon(Icons.notifications), text: 'Сповіщення'), 
+                      Tab(icon: Icon(Icons.notifications), text: 'Сповіщення'),
                     ],
                   ),
                   Expanded(
@@ -79,8 +86,12 @@ class CabinetScreen extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
-              BoxShadow(color: Colors.teal.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))
-            ]
+              BoxShadow(
+                color: Colors.teal.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,33 +99,56 @@ class CabinetScreen extends StatelessWidget {
               const Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('PHARMAPULSE BONUS', style: TextStyle(color: Colors.white70, letterSpacing: 2)),
+                  Text(
+                    'PHARMAPULSE BONUS',
+                    style: TextStyle(color: Colors.white70, letterSpacing: 2),
+                  ),
                   Icon(Icons.contactless, color: Colors.white70),
                 ],
               ),
               const SizedBox(height: 24),
-              const Text('Ваш кешбек-баланс:', style: TextStyle(color: Colors.white, fontSize: 16)),
+              const Text(
+                'Ваш кешбек-баланс:',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
               Text(
-                '${profile.bonusBalance.toStringAsFixed(2)} ₴', 
-                style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)
+                '${profile.bonusBalance.toStringAsFixed(2)} ₴',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(profile.fullName.toUpperCase(), style: const TextStyle(color: Colors.white, letterSpacing: 1)),
-                  Text(profile.loyaltyTier.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    profile.fullName.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    profile.loyaltyTier.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 32),
-        
-        ListTile(
-          leading: const Icon(Icons.info_outline, color: Colors.teal),
-          title: const Text('Як працює картка?'),
-          subtitle: const Text('За кожне успішно виконане замовлення ви автоматично отримуєте 5% кешбеку на цей рахунок.'),
+        const ListTile(
+          leading: Icon(Icons.info_outline, color: Colors.teal),
+          title: Text('Як працює картка?'),
+          subtitle: Text(
+            'За кожне успішно виконане замовлення ви автоматично отримуєте 5% кешбеку на цей рахунок.',
+          ),
         ),
         const Divider(),
         ListTile(
@@ -127,8 +161,10 @@ class CabinetScreen extends StatelessWidget {
   }
 
   Widget _buildOrdersTab(BuildContext context, List<Order> orders) {
-    if (orders.isEmpty) return const Center(child: Text('Ви ще не робили замовлень.'));
-    
+    if (orders.isEmpty) {
+      return const Center(child: Text('Ви ще не робили замовлень.'));
+    }
+
     final catalogState = context.read<CatalogCubit>().state;
     List<Medicine> allMedicines = [];
     if (catalogState is CatalogLoaded) {
@@ -140,24 +176,31 @@ class CabinetScreen extends StatelessWidget {
       itemCount: orders.length,
       itemBuilder: (context, index) {
         final order = orders[index];
-        final date = DateFormat('dd.MM.yyyy HH:mm').format(DateTime.parse(order.createdAt).toLocal());
-        
+        final date = DateFormat(
+          'dd.MM.yyyy HH:mm',
+        ).format(DateTime.parse(order.createdAt).toLocal());
+
         return Card(
           child: ExpansionTile(
-            title: Text('Замовлення #${order.id}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              'Замовлення #${order.id}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text('Дата: $date\nСтатус: ${order.status}'),
             trailing: Text(
-              '${order.finalPrice.toStringAsFixed(2)} ₴', 
+              '${order.finalPrice.toStringAsFixed(2)} ₴',
               style: TextStyle(
-                fontWeight: FontWeight.bold, 
+                fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: order.status == 'Cancelled' ? Colors.grey : Colors.black
-              )
+                color: order.status == 'Cancelled' ? Colors.grey : Colors.black,
+              ),
             ),
             children: [
               const Divider(),
               ...order.items.map((item) {
-                final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
+                final med = allMedicines
+                    .where((m) => m.id == item.medicineId)
+                    .firstOrNull;
                 final medName = med?.name ?? 'Невідомий препарат';
                 return ListTile(
                   dense: true,
@@ -173,19 +216,36 @@ class CabinetScreen extends StatelessWidget {
                     if (order.status == 'Pending') ...[
                       TextButton.icon(
                         icon: const Icon(Icons.cancel, color: Colors.red),
-                        label: const Text('Скасувати', style: TextStyle(color: Colors.red)),
+                        label: const Text(
+                          'Скасувати',
+                          style: TextStyle(color: Colors.red),
+                        ),
                         onPressed: () async {
                           try {
-                            await OrderRepository().updateOrderStatus(order.id, 'Cancelled');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Замовлення скасовано'), backgroundColor: Colors.orange)
+                            await OrderRepository().updateOrderStatus(
+                              order.id,
+                              'Cancelled',
                             );
-                            final userId = context.read<AuthCubit>().state.userId!;
-                            context.read<CabinetCubit>().loadProfile(userId);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Замовлення скасовано'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              final userId =
+                                  context.read<AuthCubit>().state.userId!;
+                              context.read<CabinetCubit>().loadProfile(userId);
+                            }
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Помилка: $e'), backgroundColor: Colors.red)
-                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Помилка: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
                           }
                         },
                       ),
@@ -197,10 +257,12 @@ class CabinetScreen extends StatelessWidget {
                       onPressed: () {
                         final cartCubit = context.read<CartCubit>();
                         cartCubit.clearCart();
-                        
+
                         bool hasMissingItems = false;
                         for (var item in order.items) {
-                          final med = allMedicines.where((m) => m.id == item.medicineId).firstOrNull;
+                          final med = allMedicines
+                              .where((m) => m.id == item.medicineId)
+                              .firstOrNull;
                           if (med != null && med.stock >= item.quantity) {
                             for (int i = 0; i < item.quantity; i++) {
                               cartCubit.addMedicine(med);
@@ -209,18 +271,28 @@ class CabinetScreen extends StatelessWidget {
                             hasMissingItems = true;
                           }
                         }
-                        
+
                         if (hasMissingItems) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Деяких товарів зараз немає в достатній кількості.'), backgroundColor: Colors.orange)
+                            const SnackBar(
+                              content: Text(
+                                'Деяких товарів зараз немає в достатній кількості.',
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
                           );
                         }
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const CartScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CartScreen(),
+                          ),
+                        );
                       },
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
         );
@@ -229,19 +301,28 @@ class CabinetScreen extends StatelessWidget {
   }
 
   Widget _buildPrescriptionsTab(List<Prescription> prescriptions) {
-    if (prescriptions.isEmpty) return const Center(child: Text('У вас немає збережених рецептів.'));
+    if (prescriptions.isEmpty) {
+      return const Center(child: Text('У вас немає збережених рецептів.'));
+    }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: prescriptions.length,
       itemBuilder: (context, index) {
         final p = prescriptions[index];
-        final date = DateFormat('dd.MM.yyyy').format(DateTime.parse(p.expiryDate).toLocal());
+        final date = DateFormat(
+          'dd.MM.yyyy',
+        ).format(DateTime.parse(p.expiryDate).toLocal());
         return Card(
           child: ListTile(
-            leading: Icon(Icons.medical_information, color: p.isVerified ? Colors.green : Colors.red),
+            leading: Icon(
+              Icons.medical_information,
+              color: p.isVerified ? Colors.green : Colors.red,
+            ),
             title: Text('Рецепт: ${p.code}'),
             subtitle: Text('Лікар: ${p.doctorFullName}\nДійсний до: $date'),
-            trailing: p.isVerified ? const Icon(Icons.check_circle, color: Colors.green) : const Icon(Icons.pending, color: Colors.orange),
+            trailing: p.isVerified
+                ? const Icon(Icons.check_circle, color: Colors.green)
+                : const Icon(Icons.pending, color: Colors.orange),
             isThreeLine: true,
           ),
         );
@@ -250,17 +331,11 @@ class CabinetScreen extends StatelessWidget {
   }
 
   Widget _buildNotificationsTab() {
-    // Фіктивний список сповіщень для демонстрації функціоналу
-    final notifications = [
-      {
-        'title': 'Сезонна акція!',
-        'body': 'Знижка 20% на всі вітаміни до кінця тижня. Підготуйтеся до сезону!',
-        'icon': Icons.percent,
-        'color': Colors.orange,
-      },
+    final systemReminders = [
       {
         'title': 'Препарат знову в наявності',
-        'body': 'Ліки "Німесил", які ви шукали, щойно надійшли в найближчу аптеку.',
+        'body':
+            'Ліки "Німесил", які ви шукали, щойно надійшли в найближчу аптеку.',
         'icon': Icons.medical_information,
         'color': Colors.teal,
       },
@@ -272,21 +347,57 @@ class CabinetScreen extends StatelessWidget {
       },
     ];
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: notifications.length,
-      itemBuilder: (context, index) {
-        final note = notifications[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: ListTile(
-            leading: CircleAvatar(
-              backgroundColor: (note['color'] as Color).withOpacity(0.2),
-              child: Icon(note['icon'] as IconData, color: note['color'] as Color),
+    return FutureBuilder<List<Promotion>>(
+      future: CatalogRepository().getPromotions(),
+      builder: (context, snapshot) {
+        final promos = snapshot.data ?? [];
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: LinearProgressIndicator(),
+              ),
+            // Реальні акції з сервера
+            ...promos.map(
+              (promo) => Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.orange.withOpacity(0.2),
+                    child: const Icon(Icons.percent, color: Colors.orange),
+                  ),
+                  title: Text(
+                    promo.title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(promo.description),
+                ),
+              ),
             ),
-            title: Text(note['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(note['body'] as String),
-          ),
+            // Системні нагадування
+            ...systemReminders.map(
+              (note) => Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: (note['color'] as Color).withOpacity(0.2),
+                    child: Icon(
+                      note['icon'] as IconData,
+                      color: note['color'] as Color,
+                    ),
+                  ),
+                  title: Text(
+                    note['title'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(note['body'] as String),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
