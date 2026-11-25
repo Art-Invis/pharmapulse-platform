@@ -13,17 +13,19 @@ skinparam packageStyle rectangle
 !define STRATEGY_COLOR #D6EAF8
 !define OBSERVER_COLOR #D5F5E3
 !define FACTORY_COLOR #E8CFC4
+!define STATE_COLOR #E8DAEF
 
 ' =========================================================
 ' ЛЕГЕНДА
 ' =========================================================
 legend top left
-  <b>GoF-патерни проектирования:</b>
+  <b>GoF-патерни проектування:</b>
   <back:SINGLETON_COLOR>   </back> Singleton — доступ до БД
   <back:BUILDER_COLOR>   </back> Builder — конструювання замовлення
   <back:STRATEGY_COLOR>   </back> Strategy — розрахунок знижок
   <back:OBSERVER_COLOR>   </back> Observer — події замовлення та сповіщення
   <back:FACTORY_COLOR>   </back> Factory Method — канали сповіщень
+  <back:STATE_COLOR>   </back> State — життєвий цикл замовлення
 endlegend
 
 ' =========================================================
@@ -81,6 +83,7 @@ package "Domain Models" {
     }
 
     class OrderItem {
+        - medicineId: Integer
         - quantity: Integer
         - unitPrice: Decimal
         + calculateSubtotal(): Decimal
@@ -208,6 +211,48 @@ package "Messaging Gateway (Factory Method)" {
 }
 
 ' =========================================================
+' ORDER LIFECYCLE — STATE (ВНИЗУ ДІАГРАМИ)
+' =========================================================
+package "Order Lifecycle (State)" {
+    class OrderStateContext STATE_COLOR {
+        - order: Order
+        - state: IOrderState
+        + changeStatus(newStatus: String): void
+    }
+
+    interface IOrderState STATE_COLOR {
+        + name: String
+        + allowedTransitions: List<String>
+        + transitionTo(order: Order, newStatus: String): void
+    }
+
+    class PendingState STATE_COLOR {
+        + allowedTransitions: ["Processing", "Cancelled"]
+        + transitionTo(order: Order, newStatus: String): void
+    }
+
+    class ProcessingState STATE_COLOR {
+        + allowedTransitions: ["Ready", "Cancelled"]
+        + transitionTo(order: Order, newStatus: String): void
+    }
+
+    class ReadyState STATE_COLOR {
+        + allowedTransitions: ["Completed", "Cancelled"]
+        + transitionTo(order: Order, newStatus: String): void
+    }
+
+    class CompletedState STATE_COLOR {
+        + allowedTransitions: []
+        + transitionTo(order: Order, newStatus: String): void
+    }
+
+    class CancelledState STATE_COLOR {
+        + allowedTransitions: []
+        + transitionTo(order: Order, newStatus: String): void
+    }
+}
+
+' =========================================================
 ' DOMAIN RELATIONSHIPS
 ' =========================================================
 User "1" -- "0..*" Prescription : owns
@@ -218,8 +263,7 @@ OrderItem "*" --> "1" Medicine : contains
 Order "1" o-- "0..1" Prescription : attaches
 Order "*" --> "0..1" PharmacyBranch : pickupAt
 
-' Правка 2: Many-to-Many між аптечними точками та асортиментом ліків
-PharmacyBranch "*" -- "*" Medicine : stocks
+PharmacyBranch --> Medicine : stocks
 
 ' =========================================================
 ' INFRASTRUCTURE & SINGLETON RELATIONSHIPS
@@ -255,8 +299,7 @@ OrderEventManager o-- "0..*" IOrderObserver : observers
 IOrderObserver <|.. CustomerNotificationDispatcher
 IOrderObserver <|.. PharmacyStockSynchronizer
 
-' Правка 1: Зміна підпису зв'язку на notifies
-Order ..> OrderEventManager : notifies
+Order ..> OrderEventManager : sends events
 PharmacyStockSynchronizer --> PharmacyBranch : updates stock
 
 ' =========================================================
@@ -273,5 +316,21 @@ EmailNotificationFactory ..> EmailNotifier : creates
 SmsNotificationFactory ..> SmsNotifier : creates
 
 CustomerNotificationDispatcher --> NotificationFactory : uses
+
+' =========================================================
+' STATE RELATIONSHIPS
+' =========================================================
+Order ..> OrderStateContext : manages lifecycle
+OrderStateContext o-- "1" IOrderState : current state
+
+IOrderState <|.. PendingState
+IOrderState <|.. ProcessingState
+IOrderState <|.. ReadyState
+IOrderState <|.. CompletedState
+IOrderState <|.. CancelledState
+
+' Примусова фіксація блоку State знизу під існуючою діаграмою
+Medicine -[hidden]down- OrderStateContext
+EmailNotifier -[hidden]down- IOrderState
 
 @enduml

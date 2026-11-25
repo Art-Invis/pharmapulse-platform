@@ -17,29 +17,35 @@ class CatalogCubit extends Cubit<CatalogState> {
     } catch (e) {
       emit(CatalogError('Помилка з\'єднання з сервером: $e'));
     }
-  } 
+  }
 
   void applyFilters({
     String query = '',
     bool onlyInStock = false,
     bool noPrescription = false,
+    String sortOrder = 'none',
   }) {
     if (state is CatalogLoaded) {
       final currentState = state as CatalogLoaded;
 
       final filtered = currentState.allMedicines.where((med) {
         final searchQuery = query.toLowerCase();
-        
+
         final matchesQuery = med.name.toLowerCase().contains(searchQuery) ||
-                             med.manufacturer.toLowerCase().contains(searchQuery);
-                             
+            med.manufacturer.toLowerCase().contains(searchQuery);
+
         final matchesStock = onlyInStock ? med.stock > 0 : true;
-        final matchesPrescription = noPrescription
-            ? !med.isPrescriptionRequired
-            : true;
+        final matchesPrescription =
+            noPrescription ? !med.isPrescriptionRequired : true;
 
         return matchesQuery && matchesStock && matchesPrescription;
       }).toList();
+
+      if (sortOrder == 'asc') {
+        filtered.sort((a, b) => a.price.compareTo(b.price));
+      } else if (sortOrder == 'desc') {
+        filtered.sort((a, b) => b.price.compareTo(a.price));
+      }
 
       emit(
         CatalogLoaded(

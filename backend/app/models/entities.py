@@ -32,6 +32,9 @@ class Prescription(Base):
     # Зв'язок
     user = relationship("User", back_populates="prescriptions")
 
+    def validate(self) -> bool:
+        return self.is_verified and self.expiry_date >= datetime.utcnow()
+
 class Medicine(Base):
     __tablename__ = "medicines"
     
@@ -65,6 +68,9 @@ class OrderItem(Base):
     order = relationship("Order", back_populates="items")
     medicine = relationship("Medicine")
 
+    def calculate_subtotal(self) -> float:
+        return self.quantity * self.price_per_unit
+    
 class Order(Base):
     __tablename__ = "orders"
     
@@ -81,3 +87,16 @@ class Order(Base):
     user = relationship("User", back_populates="orders")
     branch = relationship("PharmacyBranch")
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+    def calculate_total(self) -> float:
+        return sum(item.calculate_subtotal() for item in self.items)
+
+class Promotion(Base):
+    __tablename__ = "promotions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    discount_percent = Column(Float, default=0.0)  # наприклад, 10.0 для 10%
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)  # null = на все
+    created_at = Column(DateTime, default=datetime.utcnow)

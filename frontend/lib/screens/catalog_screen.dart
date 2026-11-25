@@ -11,7 +11,7 @@ import '../cubits/cabinet_cubit.dart';
 
 // Імпорти репозиторіїв
 import '../repositories/user_repository.dart';
-
+import '../models/medicine.dart';
 // Імпорти екранів
 import 'cart_screen.dart';
 import 'cabinet_screen.dart';
@@ -28,12 +28,106 @@ class _CatalogScreenState extends State<CatalogScreen> {
   bool _onlyInStock = false;
   bool _noPrescription = false;
   String _searchQuery = '';
+  String _sortOrder = 'none';
 
   void _applyFilters() {
     context.read<CatalogCubit>().applyFilters(
       query: _searchQuery,
       onlyInStock: _onlyInStock,
       noPrescription: _noPrescription,
+      sortOrder: _sortOrder,
+    );
+  }
+
+  void _showMedicineDetails(BuildContext context, Medicine med) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(
+                Icons.medication,
+                color: med.stock > 0 ? Colors.teal : Colors.redAccent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(med.name)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _detailRow('Діюча речовина:', med.activeSubstance),
+              const SizedBox(height: 8),
+              _detailRow('Виробник:', med.manufacturer),
+              const SizedBox(height: 8),
+              _detailRow(
+                'Відпуск:',
+                med.isPrescriptionRequired
+                    ? 'За рецептом лікаря'
+                    : 'Без рецепта',
+              ),
+              const SizedBox(height: 8),
+              _detailRow(
+                'Наявність:',
+                med.stock > 0
+                    ? 'В наявності (${med.stock} шт.)'
+                    : 'Немає в наявності',
+              ),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Ціна:', style: TextStyle(fontSize: 16)),
+                  Text(
+                    '${med.price.toStringAsFixed(2)} ₴',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Закрити'),
+            ),
+            FilledButton.icon(
+              onPressed: med.stock > 0
+                  ? () {
+                      context.read<CartCubit>().addMedicine(med);
+                      Navigator.pop(dialogContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${med.name} додано в кошик')),
+                      );
+                    }
+                  : null,
+              icon: const Icon(Icons.add_shopping_cart),
+              label: const Text('У кошик'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(
+            text: '$label ',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
     );
   }
 
@@ -48,11 +142,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
             context.read<AuthCubit>().logout();
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+              MaterialPageRoute(
+                builder: (context) => const RoleSelectionScreen(),
+              ),
             );
           },
         ),
-        title: const Text('PharmaPulse Каталог', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'PharmaPulse Каталог',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           IconButton(
@@ -65,7 +164,8 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => BlocProvider(
-                      create: (context) => CabinetCubit(UserRepository())..loadProfile(userId),
+                      create: (context) =>
+                          CabinetCubit(UserRepository())..loadProfile(userId),
                       child: const CabinetScreen(),
                     ),
                   ),
@@ -85,7 +185,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const CartScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const CartScreen(),
+                      ),
                     );
                   },
                 ),
@@ -101,7 +203,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
             return const Center(child: CircularProgressIndicator());
           } else if (state is CatalogError) {
             return Center(
-              child: Text(state.message, style: const TextStyle(color: Colors.red, fontSize: 16)),
+              child: Text(
+                state.message,
+                style: const TextStyle(color: Colors.red, fontSize: 16),
+              ),
             );
           } else if (state is CatalogLoaded) {
             final medicines = state.filteredMedicines;
@@ -147,6 +252,30 @@ class _CatalogScreenState extends State<CatalogScreen> {
                           _applyFilters();
                         },
                       ),
+                      DropdownButton<String>(
+                        value: _sortOrder,
+                        underline: const SizedBox(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'none',
+                            child: Text('Сортування: за замовч.'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'asc',
+                            child: Text('Ціна: спочатку дешевші'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'desc',
+                            child: Text('Ціна: спочатку дорожчі'),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _sortOrder = val);
+                            _applyFilters();
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -156,12 +285,13 @@ class _CatalogScreenState extends State<CatalogScreen> {
                 Expanded(
                   child: GridView.builder(
                     padding: const EdgeInsets.all(24),
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 300,
-                      childAspectRatio: 0.70,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 300,
+                          childAspectRatio: 0.70,
+                          crossAxisSpacing: 20,
+                          mainAxisSpacing: 20,
+                        ),
                     itemCount: medicines.length,
                     itemBuilder: (context, index) {
                       final med = medicines[index];
@@ -169,10 +299,12 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
                       return Card(
                         elevation: 4,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () {}, 
+                          onTap: () => _showMedicineDetails(context, med),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Column(
@@ -183,28 +315,36 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                     child: Icon(
                                       Icons.medication,
                                       size: 72,
-                                      color: med.isPrescriptionRequired ? Colors.red.shade300 : Colors.teal.shade400,
+                                      color: med.isPrescriptionRequired
+                                          ? Colors.red.shade300
+                                          : Colors.teal.shade400,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
                                   med.name,
-                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.bold),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   med.manufacturer,
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: Colors.grey.shade600),
                                 ),
                                 const SizedBox(height: 8),
 
                                 // Статус наявності
                                 Text(
-                                  inStock ? 'В наявності: ${med.stock} шт.' : 'Немає в наявності',
+                                  inStock
+                                      ? 'В наявності: ${med.stock} шт.'
+                                      : 'Немає в наявності',
                                   style: TextStyle(
-                                    color: inStock ? Colors.green.shade700 : Colors.red,
+                                    color: inStock
+                                        ? Colors.green.shade700
+                                        : Colors.red,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -212,42 +352,70 @@ class _CatalogScreenState extends State<CatalogScreen> {
                                 const SizedBox(height: 4),
                                 if (med.isPrescriptionRequired)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.red.shade50,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('За рецептом', style: TextStyle(color: Colors.red.shade700, fontSize: 12)),
+                                    child: Text(
+                                      'За рецептом',
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   )
                                 else
                                   const SizedBox(height: 24),
                                 const Spacer(),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
                                       '${med.price.toStringAsFixed(2)} ₴',
-                                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                        color: Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                     // Кнопка Купити з блокуванням
                                     FilledButton(
                                       onPressed: inStock
                                           ? () {
-                                              context.read<CartCubit>().addMedicine(med);
-                                              ScaffoldMessenger.of(context).clearSnackBars();
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                              context
+                                                  .read<CartCubit>()
+                                                  .addMedicine(med);
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).clearSnackBars();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
                                                 SnackBar(
-                                                  content: Text('${med.name} додано до кошика!'),
-                                                  duration: const Duration(seconds: 2),
+                                                  content: Text(
+                                                    '${med.name} додано до кошика!',
+                                                  ),
+                                                  duration: const Duration(
+                                                    seconds: 2,
+                                                  ),
                                                   action: SnackBarAction(
                                                     label: 'Кошик',
                                                     onPressed: () {
                                                       Navigator.push(
                                                         context,
-                                                        MaterialPageRoute(builder: (context) => const CartScreen()),
+                                                        MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              const CartScreen(),
+                                                        ),
                                                       );
                                                     },
                                                   ),

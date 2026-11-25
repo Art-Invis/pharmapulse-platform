@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from app.models.entities import Order, OrderItem, Medicine, Prescription, PharmacyBranch, User
+from app.models.entities import Order, OrderItem, Medicine, Prescription, PharmacyBranch, User, Promotion
 from app.patterns.strategy import ILoyaltyStrategy
 
 class IOrderBuilder(ABC):
@@ -29,6 +29,10 @@ class IOrderBuilder(ABC):
         pass
 
     @abstractmethod
+    def apply_promotion(self, promo: Optional[Promotion]) -> "IOrderBuilder":
+        pass
+
+    @abstractmethod
     def get_result(self) -> Order:
         pass
 
@@ -40,7 +44,7 @@ class OrderBuilder(IOrderBuilder):
         self._order = Order()
         self._items: List[OrderItem] = []
         self._medicines_cache: List[Medicine] = []
-        self._has_valid_prescription = False 
+        self._has_valid_prescription = False
 
     def set_customer(self, user: User) -> "IOrderBuilder":
         self._order.user_id = user.id
@@ -51,7 +55,7 @@ class OrderBuilder(IOrderBuilder):
         item = OrderItem(
             medicine_id=medicine.id,
             quantity=qty,
-            price_per_unit=medicine.price 
+            price_per_unit=medicine.price
         )
         self._items.append(item)
         self._medicines_cache.append(medicine)
@@ -65,7 +69,7 @@ class OrderBuilder(IOrderBuilder):
         return self
 
     def attach_prescription(self, p: Prescription) -> "IOrderBuilder":
-        if p.is_verified: 
+        if p.is_verified:
             self._has_valid_prescription = True
         return self
 
@@ -74,15 +78,26 @@ class OrderBuilder(IOrderBuilder):
         total_discount = 0.0
 
         for item, med in zip(self._items, self._medicines_cache):
-            item_raw = item.price_per_unit * item.quantity 
+            item_raw = item.price_per_unit * item.quantity
             raw_total += item_raw
             total_discount += strategy.calculate_discount(item_raw, med.is_prescription_required)
 
-        # Вартість доставки
         delivery_cost = 0.0 if (self._order.delivery_type == "Pickup" or strategy.is_delivery_free()) else 50.0
 
         self._order.raw_total = round(raw_total, 2)
         self._order.final_price = round(max(0.0, raw_total - total_discount + delivery_cost), 2)
+        return self
+
+    def apply_promotion(self, promo: Optional[Promotion]) -> "IOrderBuilder":
+        if not promo or promo.discount_percent <= 0:
+            return self
+
+        promo_discount = 0.0
+        for item in self._items:
+            if promo.medicine_id is None or item.medicine_id == promo.medicine_id:
+                promo_discount += (item.price_per_unit * item.quantity) * (promo.discount_percent / 100.0)
+
+        self._order.final_price = round(max(0.0, self._order.final_price - promo_discount), 2)
         return self
 
     def get_result(self) -> Order:

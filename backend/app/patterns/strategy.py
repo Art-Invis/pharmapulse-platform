@@ -36,11 +36,9 @@ class PremiumLoyalty(ILoyaltyStrategy):
         self.premium_discount_rate = premium_discount_rate
 
     def calculate_discount(self, base_price: float, is_prescription: bool) -> float:
-        # Преміум отримує 10% на будь-яку продукцію
         return round(base_price * self.premium_discount_rate, 2)
 
     def is_delivery_free(self) -> bool:
-        # Безкоштовна доставка для клієнтів із карткою Premium
         return True
 
 def get_loyalty_strategy(tier: str) -> ILoyaltyStrategy:
