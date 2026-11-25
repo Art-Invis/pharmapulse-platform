@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import List
-from app.models.entities import Order, PharmacyBranch, pharmacy_stocks
+
+from app.models.entities import Order, PharmacyBranch, Medicine 
 from app.patterns.factory import EmailNotificationFactory, SmsNotificationFactory
 from app.core.database import DatabaseConnection
+from app.models.entities import User 
 
 class IOrderObserver(ABC):
     @abstractmethod
@@ -36,25 +38,38 @@ class CustomerNotificationDispatcher(IOrderObserver):
 
 class PharmacyStockSynchronizer(IOrderObserver):
     def update(self, order: Order, event_type: str) -> None:
-        # Списання виконується, коли статус переходить у комплектацію/виконання
-        if event_type in ["order_completed", "order_processing"] and order.branch_id:
-            db = DatabaseConnection.get_instance().get_session()
+        if event_type == "order_cancelled":
+            
+            session_obj = DatabaseConnection.get_instance().get_session()
+            db = next(session_obj) if hasattr(session_obj, '__next__') else session_obj
+            
             try:
                 for item in order.items:
-                    # Оновлюємо кількість залишку в таблиці pharmacy_stocks
-                    stmt = (
-                        pharmacy_stocks.update()
-                        .where(
-                            pharmacy_stocks.c.pharmacy_id == order.branch_id,
-                            pharmacy_stocks.c.medicine_id == item.medicine_id
-                        )
-                        .values(quantity=pharmacy_stocks.c.quantity - item.quantity)
-                    )
-                    db.execute(stmt)
+                    med = db.query(Medicine).filter(Medicine.id == item.medicine_id).first()
+                    if med:
+                        med.stock += item.quantity
                 db.commit()
-                print(f"[Stock Sync] Списано залишки для замовлення #{order.id} на філії #{order.branch_id}")
+                print(f"[Stock Sync] Замовлення #{order.id} скасовано. Залишки повернуто на склад.")
             except Exception as e:
                 db.rollback()
-                print(f"[Stock Sync Error] Помилка коригування залишків: {e}")
+                print(f"[Stock Sync Error] Помилка повернення залишків: {e}")
+            finally:
+                db.close()
+
+class BonusAccumulatorObserver(IOrderObserver):
+    def update(self, order: Order, event_type: str) -> None:
+        if event_type == "order_completed":
+            session_obj = DatabaseConnection.get_instance().get_session()
+            db = next(session_obj) if hasattr(session_obj, '__next__') else session_obj
+            try:
+                user = db.query(User).filter(User.id == order.user_id).first()
+                if user:
+                    bonus_earned = round(order.final_price * 0.05, 2)
+                    user.bonus_balance += bonus_earned
+                    db.commit()
+                    print(f"[Bonus System] Нараховано {bonus_earned} ₴ кешбеку для {user.full_name}")
+            except Exception as e:
+                db.rollback()
+                print(f"[Bonus System Error] {e}")
             finally:
                 db.close()

@@ -9,7 +9,6 @@ def run_seed():
     engine = db_conn.engine
     Session = db_conn.session_factory
 
-    # Перестворюємо всі таблиці для чистого старту
     print("Очищення та створення таблиць...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
@@ -22,7 +21,7 @@ def run_seed():
         u2 = User(full_name="Олена Коваль", email="olena@example.com", phone="+380994445566", role="Customer", loyalty_tier="Premium")
         u3 = User(full_name="Василь Петрович", email="vasyl@example.com", phone="+380997778899", role="Customer", loyalty_tier="Social")
         db.add_all([u1, u2, u3])
-        db.flush() # щоб отримати ID
+        db.flush() 
 
         print("Додавання аптечних філій...")
         b1 = PharmacyBranch(address="м. Львів, вул. Наукова 35А", phone="+380322223344")

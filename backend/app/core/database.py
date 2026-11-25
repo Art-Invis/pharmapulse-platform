@@ -17,7 +17,6 @@ class DatabaseConnection:
             return cls._instance
 
     def _init_connection(self):
-        # connect_args потрібні виключно для SQLite
         connect_args = {"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {}
         self.engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
         self.session_factory = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)

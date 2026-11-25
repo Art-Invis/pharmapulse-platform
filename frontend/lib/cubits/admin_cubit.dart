@@ -46,7 +46,6 @@ class AdminCubit extends Cubit<AdminState> {
   Future<void> changeOrderStatus(int orderId, String newStatus) async {
     try {
       await repository.updateOrderStatus(orderId, newStatus);
-      // Після успішного оновлення просто перезавантажуємо список
       await loadOrders();
     } catch (e) {
       emit(AdminError('Помилка зміни статусу: $e'));
